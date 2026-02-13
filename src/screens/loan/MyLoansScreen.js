@@ -1,6 +1,5 @@
 /**
- * My Loans Screen - Миний бүх зээлүүд
- * БАЙРШИЛ: Cashly.mn/App/src/screens/loan/MyLoansScreen.js
+ * Premium My Loans Screen
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -12,6 +11,8 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { getMyLoans } from '../../services/loanService';
 import { useApp } from '../../context/AppContext';
 import LoanCard from '../../components/loan/LoanCard';
@@ -22,7 +23,7 @@ const MyLoansScreen = ({ navigation }) => {
   const { loans, setLoans } = useApp();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState('all'); // all, active, completed
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     loadLoans();
@@ -50,12 +51,16 @@ const MyLoansScreen = ({ navigation }) => {
   const filteredLoans = loans.filter((loan) => {
     if (filter === 'all') return true;
     if (filter === 'active')
-      return ['pending', 'approved', 'active', 'extended', 'overdue'].includes(
-        loan.status
-      );
+      return ['pending', 'approved', 'active', 'extended', 'overdue'].includes(loan.status);
     if (filter === 'completed') return loan.status === 'completed';
     return true;
   });
+
+  const filters = [
+    { label: 'Бүгд', value: 'all', icon: 'apps' },
+    { label: 'Идэвхтэй', value: 'active', icon: 'flash' },
+    { label: 'Дууссан', value: 'completed', icon: 'checkmark-circle' },
+  ];
 
   if (loading) {
     return <Loading />;
@@ -63,53 +68,46 @@ const MyLoansScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Filter */}
+      {/* Header */}
+      <LinearGradient
+        colors={[COLORS.background, COLORS.backgroundSecondary]}
+        style={styles.header}
+      >
+        <Text style={styles.headerTitle}>Миний зээлүүд</Text>
+        <Text style={styles.headerSubtitle}>
+          Нийт {filteredLoans.length} зээл
+        </Text>
+      </LinearGradient>
+
+      {/* Filter Tabs */}
       <View style={styles.filterContainer}>
-        <TouchableOpacity
-          style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
-          onPress={() => setFilter('all')}
-        >
-          <Text
-            style={[
-              styles.filterText,
-              filter === 'all' && styles.filterTextActive,
-            ]}
+        {filters.map((item) => (
+          <TouchableOpacity
+            key={item.value}
+            onPress={() => setFilter(item.value)}
+            activeOpacity={0.7}
+            style={styles.filterWrapper}
           >
-            Бүгд
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filter === 'active' && styles.filterButtonActive,
-          ]}
-          onPress={() => setFilter('active')}
-        >
-          <Text
-            style={[
-              styles.filterText,
-              filter === 'active' && styles.filterTextActive,
-            ]}
-          >
-            Идэвхтэй
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.filterButton,
-            filter === 'completed' && styles.filterButtonActive,
-          ]}
-          onPress={() => setFilter('completed')}
-        >
-          <Text
-            style={[
-              styles.filterText,
-              filter === 'completed' && styles.filterTextActive,
-            ]}
-          >
-            Дууссан
-          </Text>
-        </TouchableOpacity>
+            {filter === item.value ? (
+              <LinearGradient
+                colors={[COLORS.gradientStart, COLORS.gradientMiddle]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.filterButton}
+              >
+                <Icon name={item.icon} size={16} color={COLORS.white} />
+                <Text style={[styles.filterText, styles.filterTextActive]}>
+                  {item.label}
+                </Text>
+              </LinearGradient>
+            ) : (
+              <View style={[styles.filterButton, styles.filterButtonInactive]}>
+                <Icon name={item.icon} size={16} color={COLORS.textTertiary} />
+                <Text style={styles.filterText}>{item.label}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Loans List */}
@@ -126,11 +124,24 @@ const MyLoansScreen = ({ navigation }) => {
         )}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+          />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
+            <LinearGradient
+              colors={[COLORS.primary + '20', COLORS.accent + '20']}
+              style={styles.emptyIcon}
+            >
+              <Icon name="wallet-outline" size={48} color={COLORS.primary} />
+            </LinearGradient>
             <Text style={styles.emptyText}>Зээл байхгүй байна</Text>
+            <Text style={styles.emptySubtext}>
+              Та зээл авснаар энд харагдана
+            </Text>
           </View>
         }
       />
@@ -143,43 +154,77 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  header: {
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
   filterContainer: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 8,
+  },
+  filterWrapper: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   filterButton: {
-    flex: 1,
-    paddingVertical: 8,
-    marginHorizontal: 4,
-    borderRadius: 8,
-    backgroundColor: COLORS.grayLight,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 6,
   },
-  filterButtonActive: {
-    backgroundColor: COLORS.primary,
+  filterButtonInactive: {
+    backgroundColor: COLORS.glass,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   filterText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: COLORS.textTertiary,
   },
   filterTextActive: {
     color: COLORS.white,
   },
   listContent: {
-    padding: 16,
+    padding: 20,
+    paddingTop: 8,
   },
   emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: 80,
+  },
+  emptyIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
     color: COLORS.textSecondary,
   },
 });

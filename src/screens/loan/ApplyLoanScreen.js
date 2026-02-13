@@ -1,6 +1,5 @@
 /**
- * Apply Loan Screen - Зээлийн хүсэлт илгээх
- * БАЙРШИЛ: Cashly.mn/App/src/screens/loan/ApplyLoanScreen.js
+ * Premium Apply Loan Screen
  */
 
 import React, { useState } from 'react';
@@ -11,7 +10,8 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import Icon from 'react-native-vector-icons/Ionicons';
 import Toast from 'react-native-toast-message';
 import { applyLoan } from '../../services/loanService';
 import { useAuth } from '../../context/AuthContext';
@@ -47,16 +47,14 @@ const ApplyLoanScreen = ({ navigation }) => {
       Toast.show({
         type: 'error',
         text1: 'Алдаа',
-        text2: `Зээлийн эрх хүрэлцэхгүй байна. Таны эрх: ${formatMoney(user.creditLimit)}₮`,
+        text2: `Зээлийн эрх хүрэлцэхгүй. Таны эрх: ${formatMoney(user.creditLimit)}₮`,
       });
       return;
     }
 
     setLoading(true);
-
     try {
       const response = await applyLoan(parseFloat(amount), term, 'Хувийн');
-
       if (response.success) {
         Toast.show({
           type: 'success',
@@ -77,93 +75,146 @@ const ApplyLoanScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Credit Limit */}
-      <Card style={styles.creditCard}>
-        <Text style={styles.creditLabel}>Таны зээлийн эрх</Text>
-        <Text style={styles.creditAmount}>{formatMoney(user?.creditLimit || 0)}₮</Text>
-      </Card>
+    <View style={styles.container}>
+      {/* Header */}
+      <LinearGradient
+        colors={[COLORS.background, COLORS.backgroundSecondary]}
+        style={styles.header}
+      >
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Зээл авах</Text>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
 
-      {/* Amount Input */}
-      <View style={styles.section}>
-        <Text style={styles.label}>Зээлийн дүн</Text>
-        <Input
-          placeholder="Дүн оруулах"
-          value={amount}
-          onChangeText={setAmount}
-          keyboardType="numeric"
-          suffix="₮"
-        />
-      </View>
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Credit Limit Card */}
+        <LinearGradient
+          colors={[COLORS.success, COLORS.successLight]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.creditCard}
+        >
+          <View style={styles.creditCardInner}>
+            <Icon name="shield-checkmark" size={32} color={COLORS.white} />
+            <View style={styles.creditContent}>
+              <Text style={styles.creditLabel}>Таны зээлийн эрх</Text>
+              <Text style={styles.creditAmount}>
+                {formatMoney(user?.creditLimit || 0)}₮
+              </Text>
+            </View>
+          </View>
+        </LinearGradient>
 
-      {/* Term Selection */}
-      <View style={styles.section}>
-        <Text style={styles.label}>Хугацаа</Text>
-        <View style={styles.termContainer}>
-          {LOAN_TERMS.map((termOption) => (
-            <TouchableOpacity
-              key={termOption.value}
-              style={[
-                styles.termButton,
-                term === termOption.value && styles.termButtonActive,
-              ]}
-              onPress={() => setTerm(termOption.value)}
-            >
-              <Text
-                style={[
-                  styles.termText,
-                  term === termOption.value && styles.termTextActive,
-                ]}
-              >
-                {termOption.label}
-              </Text>
-              <Text
-                style={[
-                  styles.termRate,
-                  term === termOption.value && styles.termRateActive,
-                ]}
-              >
-                {termOption.rate}% хүү
-              </Text>
-            </TouchableOpacity>
-          ))}
+        {/* Amount Input */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Зээлийн дүн</Text>
+          <Input
+            placeholder="Дүн оруулах"
+            value={amount}
+            onChangeText={setAmount}
+            keyboardType="numeric"
+            suffix="₮"
+          />
         </View>
-      </View>
 
-      {/* Summary */}
-      {amount && parseFloat(amount) >= MIN_LOAN_AMOUNT && (
-        <Card style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Нэгтгэл</Text>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Зээлийн дүн:</Text>
-            <Text style={styles.summaryValue}>{formatMoney(parseFloat(amount))}₮</Text>
+        {/* Term Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Хугацаа</Text>
+          <View style={styles.termContainer}>
+            {LOAN_TERMS.map((termOption) => (
+              <TouchableOpacity
+                key={termOption.value}
+                onPress={() => setTerm(termOption.value)}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={term === termOption.value 
+                    ? [COLORS.gradientStart, COLORS.gradientMiddle]
+                    : [COLORS.glass, COLORS.glass]
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[
+                    styles.termButton,
+                    term === termOption.value && styles.termButtonActive,
+                  ]}
+                >
+                  <Text style={[
+                    styles.termLabel,
+                    term === termOption.value && styles.termLabelActive,
+                  ]}>
+                    {termOption.label}
+                  </Text>
+                  <Text style={[
+                    styles.termRate,
+                    term === termOption.value && styles.termRateActive,
+                  ]}>
+                    {termOption.rate}% хүү
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ))}
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Хүү ({interestRate}%):</Text>
-            <Text style={styles.summaryValue}>{formatMoney(interestAmount)}₮</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabelTotal}>Нийт төлөх:</Text>
-            <Text style={styles.summaryValueTotal}>
-              {formatMoney(totalAmount)}₮
-            </Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Хугацаа:</Text>
-            <Text style={styles.summaryValue}>{term} хоног</Text>
-          </View>
-        </Card>
-      )}
+        </View>
 
-      <Button
-        title="Зээл хүсэх"
-        onPress={handleApply}
-        loading={loading}
-        style={styles.applyButton}
-        disabled={!amount || parseFloat(amount) < MIN_LOAN_AMOUNT}
-      />
-    </ScrollView>
+        {/* Summary Card */}
+        {amount && parseFloat(amount) >= MIN_LOAN_AMOUNT && (
+          <Card variant="gradient" style={styles.summaryCard}>
+            <Text style={styles.summaryTitle}>Нэгтгэл</Text>
+            
+            <View style={styles.summaryRow}>
+              <Icon name="cash-outline" size={20} color={COLORS.textSecondary} />
+              <Text style={styles.summaryLabel}>Зээлийн дүн</Text>
+              <Text style={styles.summaryValue}>
+                {formatMoney(parseFloat(amount))}₮
+              </Text>
+            </View>
+            
+            <View style={styles.summaryRow}>
+              <Icon name="trending-up-outline" size={20} color={COLORS.textSecondary} />
+              <Text style={styles.summaryLabel}>Хүү ({interestRate}%)</Text>
+              <Text style={styles.summaryValue}>
+                {formatMoney(interestAmount)}₮
+              </Text>
+            </View>
+            
+            <View style={styles.divider} />
+            
+            <View style={styles.summaryRow}>
+              <Icon name="card-outline" size={20} color={COLORS.primary} />
+              <Text style={styles.summaryLabelTotal}>Нийт төлөх</Text>
+              <Text style={styles.summaryValueTotal}>
+                {formatMoney(totalAmount)}₮
+              </Text>
+            </View>
+            
+            <View style={styles.summaryRow}>
+              <Icon name="time-outline" size={20} color={COLORS.textSecondary} />
+              <Text style={styles.summaryLabel}>Хугацаа</Text>
+              <Text style={styles.summaryValue}>{term} хоног</Text>
+            </View>
+          </Card>
+        )}
+
+        <Button
+          title="Зээл хүсэх"
+          onPress={handleApply}
+          loading={loading}
+          style={styles.applyButton}
+          disabled={!amount || parseFloat(amount) < MIN_LOAN_AMOUNT}
+        />
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
   );
 };
 
@@ -171,86 +222,127 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.glass,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  scrollView: {
+    flex: 1,
+    padding: 20,
   },
   creditCard: {
+    borderRadius: 20,
+    padding: 20,
     marginBottom: 24,
-    backgroundColor: COLORS.primary,
+    shadowColor: COLORS.success,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  creditCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  creditContent: {
+    marginLeft: 16,
   },
   creditLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.white,
     opacity: 0.9,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   creditAmount: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '900',
     color: COLORS.white,
   },
   section: {
     marginBottom: 24,
   },
-  label: {
+  sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.textPrimary,
     marginBottom: 12,
   },
   termContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 12,
   },
   termButton: {
-    flex: 1,
     padding: 16,
-    marginHorizontal: 4,
-    borderRadius: 12,
-    borderWidth: 2,
+    borderRadius: 16,
+    borderWidth: 1,
     borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
-    alignItems: 'center',
   },
   termButtonActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary + '10',
+    borderColor: 'transparent',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  termText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
+  termLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
     marginBottom: 4,
   },
-  termTextActive: {
-    color: COLORS.primary,
+  termLabelActive: {
+    color: COLORS.white,
   },
   termRate: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
+    fontSize: 13,
+    color: COLORS.textTertiary,
   },
   termRateActive: {
-    color: COLORS.primary,
+    color: COLORS.white,
+    opacity: 0.9,
   },
   summaryCard: {
     marginBottom: 24,
   },
   summaryTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.textPrimary,
     marginBottom: 16,
   },
   summaryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
   summaryLabel: {
+    flex: 1,
     fontSize: 14,
     color: COLORS.textSecondary,
+    marginLeft: 12,
   },
   summaryValue: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.textPrimary,
   },
@@ -260,17 +352,19 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   summaryLabelTotal: {
+    flex: 1,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.textPrimary,
+    marginLeft: 12,
   },
   summaryValueTotal: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '900',
     color: COLORS.primary,
   },
   applyButton: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
 });
 

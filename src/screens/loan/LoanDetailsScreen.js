@@ -1,6 +1,5 @@
 /**
- * Loan Details Screen - Зээлийн дэлгэрэнгүй
- * БАЙРШИЛ: Cashly.mn/App/src/screens/loan/LoanDetailsScreen.js
+ * Premium Loan Details Screen
  */
 
 import React, { useState, useEffect } from 'react';
@@ -9,16 +8,18 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Icon from 'react-native-vector-icons/Ionicons';
 import Toast from 'react-native-toast-message';
 import { getLoanDetails, repayLoan } from '../../services/loanService';
 import { useApp } from '../../context/AppContext';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
-import Loading from '../../components/common/Loading';
-import LoanStatusBadge from '../../components/loan/LoanStatusBadge';
 import Input from '../../components/common/Input';
+import Loading from '../../components/common/Loading';
 import { COLORS } from '../../constants/colors';
 import { formatMoney, formatDate } from '../../utils/formatters';
 
@@ -54,11 +55,7 @@ const LoanDetailsScreen = ({ route, navigation }) => {
 
   const handleRepay = async () => {
     if (!repayAmount || parseFloat(repayAmount) <= 0) {
-      Toast.show({
-        type: 'error',
-        text1: 'Алдаа',
-        text2: 'Төлбөрийн дүн оруулна уу',
-      });
+      Toast.show({ type: 'error', text1: 'Алдаа', text2: 'Төлбөрийн дүн оруулна уу' });
       return;
     }
 
@@ -66,186 +63,184 @@ const LoanDetailsScreen = ({ route, navigation }) => {
     const totalDue = loan.remainingAmount + (loan.lateFee || 0);
 
     if (amount > totalDue) {
-      Toast.show({
-        type: 'error',
-        text1: 'Алдаа',
-        text2: `Төлөх дүн хэт их байна. Төлөх ёстой: ${formatMoney(totalDue)}₮`,
-      });
+      Toast.show({ type: 'error', text1: 'Алдаа', text2: `Төлөх дүн хэт их. Төлөх ёстой: ${formatMoney(totalDue)}₮` });
       return;
     }
 
     if (amount > wallet?.balance) {
-      Toast.show({
-        type: 'error',
-        text1: 'Алдаа',
-        text2: 'Хэтэвчний үлдэгдэл хүрэлцэхгүй байна',
-      });
+      Toast.show({ type: 'error', text1: 'Алдаа', text2: 'Хэтэвчний үлдэгдэл хүрэлцэхгүй' });
       return;
     }
 
-    Alert.alert(
-      'Зээл төлөх',
-      `${formatMoney(amount)}₮ төлөх үү?`,
-      [
-        { text: 'Болих', style: 'cancel' },
-        {
-          text: 'Төлөх',
-          onPress: async () => {
-            setRepaying(true);
-            try {
-              const response = await repayLoan(loanId, amount);
-              if (response.success) {
-                Toast.show({
-                  type: 'success',
-                  text1: 'Амжилттай',
-                  text2: response.message,
-                });
-                await loadLoanDetails();
-                setRepayAmount('');
-              }
-            } catch (error) {
-              Toast.show({
-                type: 'error',
-                text1: 'Алдаа',
-                text2: error.message || 'Төлбөр төлөхөд алдаа гарлаа',
-              });
-            } finally {
-              setRepaying(false);
+    Alert.alert('Зээл төлөх', `${formatMoney(amount)}₮ төлөх үү?`, [
+      { text: 'Болих', style: 'cancel' },
+      {
+        text: 'Төлөх',
+        onPress: async () => {
+          setRepaying(true);
+          try {
+            const response = await repayLoan(loanId, amount);
+            if (response.success) {
+              Toast.show({ type: 'success', text1: 'Амжилттай', text2: response.message });
+              await loadLoanDetails();
+              setRepayAmount('');
             }
-          },
+          } catch (error) {
+            Toast.show({ type: 'error', text1: 'Алдаа', text2: error.message || 'Төлбөр төлөхөд алдаа гарлаа' });
+          } finally {
+            setRepaying(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  const handleExtend = () => {
-    navigation.navigate('ExtendLoan', { loanId: loan._id });
-  };
+  if (loading) return <Loading />;
+  if (!loan) return null;
 
-  if (loading) {
-    return <Loading />;
-  }
-
-  if (!loan) {
-    return null;
-  }
-
-  const canExtend = loan.term !== 14 && 
-                    loan.extensionCount < 4 && 
-                    loan.status === 'active';
   const canRepay = ['active', 'extended', 'overdue'].includes(loan.status);
   const totalDue = loan.remainingAmount + (loan.lateFee || 0);
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Status */}
-      <Card style={styles.statusCard}>
-        <LoanStatusBadge status={loan.status} />
-        <Text style={styles.loanNumber}>{loan.loanNumber}</Text>
-      </Card>
+    <View style={styles.container}>
+      {/* Header */}
+      <LinearGradient
+        colors={[COLORS.background, COLORS.backgroundSecondary]}
+        style={styles.header}
+      >
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Зээлийн дэлгэрэнгүй</Text>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
 
-      {/* Summary */}
-      <Card style={styles.summaryCard}>
-        <Text style={styles.cardTitle}>Нэгтгэл</Text>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Зээлийн дүн:</Text>
-          <Text style={styles.summaryValue}>{formatMoney(loan.principal)}₮</Text>
-        </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Хүү:</Text>
-          <Text style={styles.summaryValue}>
-            {formatMoney(loan.interestAmount)}₮ ({loan.interestRate}%)
-          </Text>
-        </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Нийт төлөх:</Text>
-          <Text style={styles.summaryValue}>{formatMoney(loan.totalAmount)}₮</Text>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Төлсөн:</Text>
-          <Text style={[styles.summaryValue, { color: COLORS.success }]}>
-            {formatMoney(loan.paidAmount)}₮
-          </Text>
-        </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabelTotal}>Үлдэгдэл:</Text>
-          <Text style={styles.summaryValueTotal}>
-            {formatMoney(loan.remainingAmount)}₮
-          </Text>
-        </View>
-        {loan.lateFee > 0 && (
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: COLORS.danger }]}>
-              Хоцролтын төлбөр:
-            </Text>
-            <Text style={[styles.summaryValue, { color: COLORS.danger }]}>
-              {formatMoney(loan.lateFee)}₮
-            </Text>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Status Card */}
+        <Card variant="gradient" style={styles.statusCard}>
+          <View style={styles.statusHeader}>
+            <Text style={styles.loanNumber}>{loan.loanNumber}</Text>
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusText}>
+                {loan.status === 'active' ? 'Идэвхтэй' : 
+                 loan.status === 'completed' ? 'Дууссан' : loan.status}
+              </Text>
+            </View>
           </View>
-        )}
-      </Card>
-
-      {/* Dates */}
-      <Card style={styles.datesCard}>
-        <Text style={styles.cardTitle}>Огнооны мэдээлэл</Text>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Эхэлсэн:</Text>
-          <Text style={styles.summaryValue}>
-            {formatDate(loan.disbursedAt || loan.createdAt)}
-          </Text>
-        </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Дуусах:</Text>
-          <Text style={styles.summaryValue}>{formatDate(loan.dueDate)}</Text>
-        </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Хугацаа:</Text>
-          <Text style={styles.summaryValue}>{loan.term} хоног</Text>
-        </View>
-        {loan.extensionCount > 0 && (
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Сунгалт:</Text>
-            <Text style={styles.summaryValue}>
-              {loan.extensionCount} удаа
-            </Text>
-          </View>
-        )}
-      </Card>
-
-      {/* Repayment */}
-      {canRepay && (
-        <Card style={styles.repayCard}>
-          <Text style={styles.cardTitle}>Зээл төлөх</Text>
-          <Text style={styles.repayLabel}>
-            Нийт төлөх ёстой: {formatMoney(totalDue)}₮
-          </Text>
-          <Input
-            placeholder="Төлөх дүн"
-            value={repayAmount}
-            onChangeText={setRepayAmount}
-            keyboardType="numeric"
-            suffix="₮"
-          />
-          <Button
-            title="Төлөх"
-            onPress={handleRepay}
-            loading={repaying}
-            style={styles.repayButton}
-          />
         </Card>
-      )}
 
-      {/* Actions */}
-      {canExtend && (
-        <Button
-          title="Зээл сунгах"
-          onPress={handleExtend}
-          variant="outline"
-          style={styles.extendButton}
-        />
-      )}
-    </ScrollView>
+        {/* Amount Summary */}
+        <Card variant="glass" style={styles.summaryCard}>
+          <Text style={styles.cardTitle}>Нэгтгэл</Text>
+          
+          <View style={styles.summaryRow}>
+            <Icon name="cash-outline" size={20} color={COLORS.textSecondary} />
+            <Text style={styles.summaryLabel}>Зээлийн дүн</Text>
+            <Text style={styles.summaryValue}>{formatMoney(loan.principal)}₮</Text>
+          </View>
+          
+          <View style={styles.summaryRow}>
+            <Icon name="trending-up-outline" size={20} color={COLORS.textSecondary} />
+            <Text style={styles.summaryLabel}>Хүү ({loan.interestRate}%)</Text>
+            <Text style={styles.summaryValue}>{formatMoney(loan.interestAmount)}₮</Text>
+          </View>
+          
+          <View style={styles.summaryRow}>
+            <Icon name="card-outline" size={20} color={COLORS.textSecondary} />
+            <Text style={styles.summaryLabel}>Нийт</Text>
+            <Text style={styles.summaryValue}>{formatMoney(loan.totalAmount)}₮</Text>
+          </View>
+          
+          <View style={styles.divider} />
+          
+          <View style={styles.summaryRow}>
+            <Icon name="checkmark-circle" size={20} color={COLORS.success} />
+            <Text style={styles.summaryLabel}>Төлсөн</Text>
+            <Text style={[styles.summaryValue, { color: COLORS.success }]}>
+              {formatMoney(loan.paidAmount)}₮
+            </Text>
+          </View>
+          
+          <View style={styles.summaryRow}>
+            <Icon name="alert-circle" size={20} color={COLORS.danger} />
+            <Text style={styles.summaryLabelTotal}>Үлдэгдэл</Text>
+            <Text style={styles.summaryValueTotal}>
+              {formatMoney(loan.remainingAmount)}₮
+            </Text>
+          </View>
+
+          {loan.lateFee > 0 && (
+            <View style={styles.summaryRow}>
+              <Icon name="warning" size={20} color={COLORS.warning} />
+              <Text style={[styles.summaryLabel, { color: COLORS.warning }]}>
+                Хоцролт
+              </Text>
+              <Text style={[styles.summaryValue, { color: COLORS.warning }]}>
+                {formatMoney(loan.lateFee)}₮
+              </Text>
+            </View>
+          )}
+        </Card>
+
+        {/* Dates Card */}
+        <Card variant="glass" style={styles.datesCard}>
+          <Text style={styles.cardTitle}>Огнооны мэдээлэл</Text>
+          <View style={styles.dateRow}>
+            <Icon name="calendar-outline" size={18} color={COLORS.info} />
+            <View style={styles.dateContent}>
+              <Text style={styles.dateLabel}>Эхлэсэн</Text>
+              <Text style={styles.dateValue}>
+                {formatDate(loan.disbursedAt || loan.createdAt)}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.dateRow}>
+            <Icon name="time-outline" size={18} color={COLORS.primary} />
+            <View style={styles.dateContent}>
+              <Text style={styles.dateLabel}>Дуусах</Text>
+              <Text style={styles.dateValue}>{formatDate(loan.dueDate)}</Text>
+            </View>
+          </View>
+          {loan.extensionCount > 0 && (
+            <View style={styles.dateRow}>
+              <Icon name="refresh-outline" size={18} color={COLORS.warning} />
+              <View style={styles.dateContent}>
+                <Text style={styles.dateLabel}>Сунгалт</Text>
+                <Text style={styles.dateValue}>{loan.extensionCount} удаа</Text>
+              </View>
+            </View>
+          )}
+        </Card>
+
+        {/* Repayment Section */}
+        {canRepay && (
+          <Card variant="glass" style={styles.repayCard}>
+            <Text style={styles.cardTitle}>Зээл төлөх</Text>
+            <View style={styles.totalDueCard}>
+              <Text style={styles.totalDueLabel}>Нийт төлөх ёстой</Text>
+              <Text style={styles.totalDueAmount}>{formatMoney(totalDue)}₮</Text>
+            </View>
+            <Input
+              placeholder="Төлөх дүн"
+              value={repayAmount}
+              onChangeText={setRepayAmount}
+              keyboardType="numeric"
+              suffix="₮"
+            />
+            <Button
+              title="Төлөх"
+              onPress={handleRepay}
+              loading={repaying}
+            />
+          </Card>
+        )}
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+    </View>
   );
 };
 
@@ -253,44 +248,80 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.glass,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  scrollView: {
+    flex: 1,
+    padding: 20,
   },
   statusCard: {
-    alignItems: 'center',
     marginBottom: 16,
   },
+  statusHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   loanNumber: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.textPrimary,
-    marginTop: 12,
+  },
+  statusBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: COLORS.success + '20',
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.success,
   },
   summaryCard: {
     marginBottom: 16,
   },
-  datesCard: {
-    marginBottom: 16,
-  },
-  repayCard: {
-    marginBottom: 16,
-  },
   cardTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.textPrimary,
     marginBottom: 16,
   },
   summaryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
   summaryLabel: {
+    flex: 1,
     fontSize: 14,
     color: COLORS.textSecondary,
+    marginLeft: 12,
   },
   summaryValue: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.textPrimary,
   },
@@ -300,25 +331,58 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   summaryLabelTotal: {
+    flex: 1,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.textPrimary,
+    marginLeft: 12,
   },
   summaryValueTotal: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '900',
     color: COLORS.danger,
   },
-  repayLabel: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
+  datesCard: {
+    marginBottom: 16,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 12,
   },
-  repayButton: {
-    marginTop: 12,
+  dateContent: {
+    marginLeft: 12,
+    flex: 1,
   },
-  extendButton: {
-    marginBottom: 32,
+  dateLabel: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  dateValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  repayCard: {
+    marginBottom: 16,
+  },
+  totalDueCard: {
+    backgroundColor: COLORS.primary + '10',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  totalDueLabel: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 6,
+  },
+  totalDueAmount: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: COLORS.primary,
   },
 });
 

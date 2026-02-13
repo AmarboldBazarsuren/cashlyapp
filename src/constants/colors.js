@@ -1,46 +1,65 @@
 /**
- * Colors - Өнгөний тогтмолууд
- * БАЙРШИЛ: Cashly.mn/App/src/constants/colors.js
+ * Colors - Premium Dark Theme Color System
+ * Modern Fintech Design
  */
 
 export const COLORS = {
-  // Primary Colors
-  primary: '#4C6FFF',
-  primaryDark: '#3451D9',
-  primaryLight: '#6B8AFF',
+  // Primary Gradient Colors
+  primary: '#7C3AED',      // Vibrant Purple
+  primaryDark: '#5B21B6',
+  primaryLight: '#A78BFA',
+  accent: '#EC4899',       // Pink accent
+  accentLight: '#F472B6',
   
-  // Secondary Colors
-  secondary: '#FF6B6B',
-  success: '#51CF66',
-  warning: '#FFD93D',
-  danger: '#FF6B6B',
-  info: '#4DABF7',
+  // Gradient Combinations
+  gradientStart: '#7C3AED',
+  gradientMiddle: '#EC4899',
+  gradientEnd: '#F59E0B',
   
-  // Neutral Colors
-  white: '#FFFFFF',
-  black: '#000000',
-  gray: '#868E96',
-  grayLight: '#F1F3F5',
-  grayDark: '#495057',
+  // Success & Status
+  success: '#10B981',
+  successLight: '#34D399',
+  warning: '#F59E0B',
+  warningLight: '#FBBF24',
+  danger: '#EF4444',
+  dangerLight: '#F87171',
+  info: '#3B82F6',
+  infoLight: '#60A5FA',
   
-  // Background
-  background: '#F8F9FA',
-  card: '#FFFFFF',
+  // Dark Theme Base
+  background: '#0A0A0A',      // Pure black background
+  backgroundSecondary: '#121212',
+  backgroundCard: '#1A1A1A',
+  backgroundElevated: '#242424',
   
-  // Text
-  textPrimary: '#212529',
-  textSecondary: '#868E96',
-  textLight: '#ADB5BD',
+  // Glass Effects
+  glass: 'rgba(255, 255, 255, 0.05)',
+  glassBorder: 'rgba(255, 255, 255, 0.1)',
+  glassHighlight: 'rgba(255, 255, 255, 0.15)',
+  
+  // Text Colors
+  textPrimary: '#FFFFFF',
+  textSecondary: '#A0A0A0',
+  textTertiary: '#666666',
+  textMuted: '#4A4A4A',
+  
+  // Overlay & Shadow
+  overlay: 'rgba(0, 0, 0, 0.7)',
+  shadow: 'rgba(0, 0, 0, 0.5)',
   
   // Border
-  border: '#DEE2E6',
-  borderLight: '#E9ECEF',
+  border: 'rgba(255, 255, 255, 0.08)',
+  borderLight: 'rgba(255, 255, 255, 0.05)',
   
-  // Status Colors
-  pending: '#FFD93D',
-  approved: '#51CF66',
-  rejected: '#FF6B6B',
-  active: '#4DABF7',
-  completed: '#51CF66',
-  overdue: '#FF6B6B',
+  // Status Badge Colors
+  pending: '#F59E0B',
+  approved: '#10B981',
+  rejected: '#EF4444',
+  active: '#3B82F6',
+  completed: '#10B981',
+  overdue: '#EF4444',
+  
+  // Semantic Colors
+  white: '#FFFFFF',
+  black: '#000000',
 };

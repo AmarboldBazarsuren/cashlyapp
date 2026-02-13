@@ -1,11 +1,12 @@
 /**
- * Main Navigator - Нэвтэрсний дараах navigation
- * БАЙРШИЛ: Cashly.mn/App/src/navigation/MainNavigator.js
+ * Premium Main Navigator with Custom Tab Bar
  */
 
 import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 // Screens
@@ -35,35 +36,101 @@ import { COLORS } from '../constants/colors';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+// Custom Tab Bar Component
+const CustomTabBar = ({ state, descriptors, navigation }) => {
+  return (
+    <View style={styles.tabBarContainer}>
+      <LinearGradient
+        colors={[COLORS.backgroundCard, COLORS.background]}
+        style={styles.tabBarGradient}
+      >
+        <View style={styles.tabBar}>
+          {state.routes.map((route, index) => {
+            const { options } = descriptors[route.key];
+            const isFocused = state.index === index;
+
+            const onPress = () => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
+
+            // Icon names
+            const iconNames = {
+              Home: isFocused ? 'home' : 'home-outline',
+              Loans: isFocused ? 'wallet' : 'wallet-outline',
+              Wallet: isFocused ? 'card' : 'card-outline',
+              Profile: isFocused ? 'person' : 'person-outline',
+            };
+
+            // Labels
+            const labels = {
+              Home: 'Нүүр',
+              Loans: 'Зээлүүд',
+              Wallet: 'Хэтэвч',
+              Profile: 'Профайл',
+            };
+
+            return (
+              <TouchableOpacity
+                key={route.key}
+                onPress={onPress}
+                style={styles.tabButton}
+                activeOpacity={0.7}
+              >
+                {isFocused ? (
+                  <LinearGradient
+                    colors={[COLORS.gradientStart, COLORS.gradientMiddle]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.activeTabBackground}
+                  >
+                    <Icon 
+                      name={iconNames[route.name]} 
+                      size={24} 
+                      color={COLORS.white}
+                    />
+                  </LinearGradient>
+                ) : (
+                  <Icon 
+                    name={iconNames[route.name]} 
+                    size={24} 
+                    color={COLORS.textTertiary}
+                  />
+                )}
+                <Text style={[
+                  styles.tabLabel,
+                  isFocused && styles.tabLabelActive
+                ]}>
+                  {labels[route.name]}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </LinearGradient>
+    </View>
+  );
+};
+
 // Home Stack
 const HomeStack = () => (
   <Stack.Navigator
     screenOptions={{
-      headerStyle: { backgroundColor: COLORS.primary },
-      headerTintColor: '#fff',
-      headerTitleStyle: { fontWeight: 'bold' },
+      headerShown: false,
+      cardStyle: { backgroundColor: COLORS.background },
     }}
   >
-    <Stack.Screen 
-      name="HomeMain" 
-      component={HomeScreen} 
-      options={{ title: 'Нүүр' }}
-    />
-    <Stack.Screen 
-      name="ApplyLoan" 
-      component={ApplyLoanScreen}
-      options={{ title: 'Зээл авах' }}
-    />
-    <Stack.Screen 
-      name="KYCInfo" 
-      component={KYCInfoScreen}
-      options={{ title: 'Хувийн мэдээлэл' }}
-    />
-    <Stack.Screen 
-      name="KYCDocuments" 
-      component={KYCDocumentsScreen}
-      options={{ title: 'Баримт бичиг' }}
-    />
+    <Stack.Screen name="HomeMain" component={HomeScreen} />
+    <Stack.Screen name="ApplyLoan" component={ApplyLoanScreen} />
+    <Stack.Screen name="KYCInfo" component={KYCInfoScreen} />
+    <Stack.Screen name="KYCDocuments" component={KYCDocumentsScreen} />
   </Stack.Navigator>
 );
 
@@ -71,26 +138,13 @@ const HomeStack = () => (
 const LoansStack = () => (
   <Stack.Navigator
     screenOptions={{
-      headerStyle: { backgroundColor: COLORS.primary },
-      headerTintColor: '#fff',
-      headerTitleStyle: { fontWeight: 'bold' },
+      headerShown: false,
+      cardStyle: { backgroundColor: COLORS.background },
     }}
   >
-    <Stack.Screen 
-      name="MyLoansMain" 
-      component={MyLoansScreen}
-      options={{ title: 'Миний зээлүүд' }}
-    />
-    <Stack.Screen 
-      name="LoanDetails" 
-      component={LoanDetailsScreen}
-      options={{ title: 'Зээлийн дэлгэрэнгүй' }}
-    />
-    <Stack.Screen 
-      name="ExtendLoan" 
-      component={ExtendLoanScreen}
-      options={{ title: 'Зээл сунгах' }}
-    />
+    <Stack.Screen name="MyLoansMain" component={MyLoansScreen} />
+    <Stack.Screen name="LoanDetails" component={LoanDetailsScreen} />
+    <Stack.Screen name="ExtendLoan" component={ExtendLoanScreen} />
   </Stack.Navigator>
 );
 
@@ -98,26 +152,13 @@ const LoansStack = () => (
 const WalletStack = () => (
   <Stack.Navigator
     screenOptions={{
-      headerStyle: { backgroundColor: COLORS.primary },
-      headerTintColor: '#fff',
-      headerTitleStyle: { fontWeight: 'bold' },
+      headerShown: false,
+      cardStyle: { backgroundColor: COLORS.background },
     }}
   >
-    <Stack.Screen 
-      name="WalletMain" 
-      component={WalletScreen}
-      options={{ title: 'Хэтэвч' }}
-    />
-    <Stack.Screen 
-      name="Deposit" 
-      component={DepositScreen}
-      options={{ title: 'Цэнэглэх' }}
-    />
-    <Stack.Screen 
-      name="Withdraw" 
-      component={WithdrawScreen}
-      options={{ title: 'Татах' }}
-    />
+    <Stack.Screen name="WalletMain" component={WalletScreen} />
+    <Stack.Screen name="Deposit" component={DepositScreen} />
+    <Stack.Screen name="Withdraw" component={WithdrawScreen} />
   </Stack.Navigator>
 );
 
@@ -125,79 +166,87 @@ const WalletStack = () => (
 const ProfileStack = () => (
   <Stack.Navigator
     screenOptions={{
-      headerStyle: { backgroundColor: COLORS.primary },
-      headerTintColor: '#fff',
-      headerTitleStyle: { fontWeight: 'bold' },
+      headerShown: false,
+      cardStyle: { backgroundColor: COLORS.background },
     }}
   >
-    <Stack.Screen 
-      name="ProfileMain" 
-      component={ProfileScreen}
-      options={{ title: 'Профайл' }}
-    />
-    <Stack.Screen 
-      name="TransactionHistory" 
-      component={TransactionHistoryScreen}
-      options={{ title: 'Гүйлгээний түүх' }}
-    />
+    <Stack.Screen name="ProfileMain" component={ProfileScreen} />
+    <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} />
   </Stack.Navigator>
 );
 
 const MainNavigator = () => {
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
         headerShown: false,
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Loans') {
-            iconName = focused ? 'wallet' : 'wallet-outline';
-          } else if (route.name === 'Wallet') {
-            iconName = focused ? 'card' : 'card-outline';
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-
-          return <Icon name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.gray,
-        tabBarStyle: {
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
-      })}
+      }}
     >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeStack}
-        options={{ tabBarLabel: 'Нүүр' }}
-      />
-      <Tab.Screen 
-        name="Loans" 
-        component={LoansStack}
-        options={{ tabBarLabel: 'Зээлүүд' }}
-      />
-      <Tab.Screen 
-        name="Wallet" 
-        component={WalletStack}
-        options={{ tabBarLabel: 'Хэтэвч' }}
-      />
-      <Tab.Screen 
-        name="Profile" 
-        component={ProfileStack}
-        options={{ tabBarLabel: 'Профайл' }}
-      />
+      <Tab.Screen name="Home" component={HomeStack} />
+      <Tab.Screen name="Loans" component={LoansStack} />
+      <Tab.Screen name="Wallet" component={WalletStack} />
+      <Tab.Screen name="Profile" component={ProfileStack} />
     </Tab.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  tabBarContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    // Android дээр button-ээс дээш байрлуулах
+    paddingBottom: Platform.OS === 'android' ? 20 : 0,
+  },
+  tabBarGradient: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  activeTabBackground: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.textTertiary,
+    marginTop: 4,
+  },
+  tabLabelActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+});
 
 export default MainNavigator;

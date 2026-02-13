@@ -1,6 +1,5 @@
 /**
- * Wallet Screen - Хэтэвч
- * БАЙРШИЛ: Cashly.mn/App/src/screens/wallet/WalletScreen.js
+ * Premium Wallet Screen - Modern Dark Theme
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -12,6 +11,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { getWallet, getTransactions } from '../../services/walletService';
 import { useApp } from '../../context/AppContext';
@@ -35,13 +35,8 @@ const WalletScreen = ({ navigation }) => {
         getTransactions(1),
       ]);
 
-      if (walletRes.success) {
-        setWallet(walletRes.data.wallet);
-      }
-
-      if (transactionsRes.success) {
-        setTransactions(transactionsRes.data.transactions);
-      }
+      if (walletRes.success) setWallet(walletRes.data.wallet);
+      if (transactionsRes.success) setTransactions(transactionsRes.data.transactions);
     } catch (error) {
       console.log('Load wallet data error:', error);
     }
@@ -56,94 +51,168 @@ const WalletScreen = ({ navigation }) => {
   const recentTransactions = transactions.slice(0, 5);
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {/* Balance Card */}
-      <Card style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>Нийт үлдэгдэл</Text>
-        <Text style={styles.balanceAmount}>
-          {formatMoney(wallet?.balance || 0)}₮
-        </Text>
-        <View style={styles.balanceDetails}>
-          <View style={styles.balanceDetail}>
-            <Text style={styles.balanceDetailLabel}>Боломжит</Text>
-            <Text style={styles.balanceDetailValue}>
-              {formatMoney(wallet?.availableBalance || 0)}₮
-            </Text>
-          </View>
-          <View style={styles.balanceDetailDivider} />
-          <View style={styles.balanceDetail}>
-            <Text style={styles.balanceDetailLabel}>Түгжигдсэн</Text>
-            <Text style={styles.balanceDetailValue}>
-              {formatMoney(wallet?.frozenBalance || 0)}₮
-            </Text>
-          </View>
-        </View>
-      </Card>
+    <View style={styles.container}>
+      {/* Header */}
+      <LinearGradient
+        colors={[COLORS.background, COLORS.backgroundSecondary]}
+        style={styles.header}
+      >
+        <Text style={styles.headerTitle}>Хэтэвч</Text>
+      </LinearGradient>
 
-      {/* Actions */}
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('Deposit')}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Balance Card - Premium Gradient */}
+        <LinearGradient
+          colors={[COLORS.gradientStart, COLORS.gradientMiddle, COLORS.gradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.balanceCard}
         >
-          <View style={styles.actionIcon}>
-            <Icon name="add-circle" size={32} color={COLORS.success} />
+          <View style={styles.balanceCardInner}>
+            <View style={styles.balanceHeader}>
+              <Text style={styles.balanceLabel}>Нийт үлдэгдэл</Text>
+              <TouchableOpacity>
+                <Icon name="eye-outline" size={20} color={COLORS.white} />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.balanceAmount}>
+              {formatMoney(wallet?.balance || 0)}
+              <Text style={styles.currency}>₮</Text>
+            </Text>
+            
+            <View style={styles.balanceDetails}>
+              <View style={styles.balanceDetail}>
+                <Icon name="checkmark-circle" size={16} color={COLORS.white} />
+                <View style={styles.balanceDetailContent}>
+                  <Text style={styles.balanceDetailLabel}>Боломжит</Text>
+                  <Text style={styles.balanceDetailValue}>
+                    {formatMoney(wallet?.availableBalance || 0)}₮
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.balanceDetailDivider} />
+              
+              <View style={styles.balanceDetail}>
+                <Icon name="lock-closed" size={16} color={COLORS.white} />
+                <View style={styles.balanceDetailContent}>
+                  <Text style={styles.balanceDetailLabel}>Түгжигдсэн</Text>
+                  <Text style={styles.balanceDetailValue}>
+                    {formatMoney(wallet?.frozenBalance || 0)}₮
+                  </Text>
+                </View>
+              </View>
+            </View>
           </View>
-          <Text style={styles.actionText}>Цэнэглэх</Text>
-        </TouchableOpacity>
+          
+          {/* Decorative circles */}
+          <View style={styles.decorativeCircle1} />
+          <View style={styles.decorativeCircle2} />
+        </LinearGradient>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('Withdraw')}
-        >
-          <View style={styles.actionIcon}>
-            <Icon name="arrow-down-circle" size={32} color={COLORS.primary} />
-          </View>
-          <Text style={styles.actionText}>Татах</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Statistics */}
-      <Card style={styles.statsCard}>
-        <Text style={styles.cardTitle}>Статистик</Text>
-        <View style={styles.statRow}>
-          <Text style={styles.statLabel}>Нийт цэнэглэсэн:</Text>
-          <Text style={styles.statValue}>
-            {formatMoney(wallet?.totalDeposited || 0)}₮
-          </Text>
-        </View>
-        <View style={styles.statRow}>
-          <Text style={styles.statLabel}>Нийт татсан:</Text>
-          <Text style={styles.statValue}>
-            {formatMoney(wallet?.totalWithdrawn || 0)}₮
-          </Text>
-        </View>
-      </Card>
-
-      {/* Recent Transactions */}
-      {recentTransactions.length > 0 && (
-        <View style={styles.transactionsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Сүүлийн гүйлгээ</Text>
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate('Profile', { screen: 'TransactionHistory' })
-              }
+        {/* Action Buttons */}
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('Deposit')}
+          >
+            <LinearGradient
+              colors={[COLORS.success, COLORS.successLight]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.actionIconContainer}
             >
-              <Text style={styles.seeAllText}>Бүгдийг харах</Text>
-            </TouchableOpacity>
-          </View>
-          {recentTransactions.map((transaction) => (
-            <TransactionItem key={transaction._id} transaction={transaction} />
-          ))}
+              <Icon name="add" size={28} color={COLORS.white} />
+            </LinearGradient>
+            <Text style={styles.actionText}>Цэнэглэх</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('Withdraw')}
+          >
+            <LinearGradient
+              colors={[COLORS.info, COLORS.infoLight]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.actionIconContainer}
+            >
+              <Icon name="arrow-down" size={28} color={COLORS.white} />
+            </LinearGradient>
+            <Text style={styles.actionText}>Татах</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('Profile', { screen: 'TransactionHistory' })}
+          >
+            <LinearGradient
+              colors={[COLORS.primary, COLORS.primaryLight]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.actionIconContainer}
+            >
+              <Icon name="receipt-outline" size={28} color={COLORS.white} />
+            </LinearGradient>
+            <Text style={styles.actionText}>Түүх</Text>
+          </TouchableOpacity>
         </View>
-      )}
-    </ScrollView>
+
+        {/* Statistics Card */}
+        <Card variant="glass" style={styles.statsCard}>
+          <Text style={styles.cardTitle}>Статистик</Text>
+          <View style={styles.statRow}>
+            <View style={styles.statIcon}>
+              <Icon name="arrow-up" size={16} color={COLORS.success} />
+            </View>
+            <Text style={styles.statLabel}>Нийт цэнэглэсэн</Text>
+            <Text style={styles.statValue}>
+              {formatMoney(wallet?.totalDeposited || 0)}₮
+            </Text>
+          </View>
+          <View style={styles.statRow}>
+            <View style={styles.statIcon}>
+              <Icon name="arrow-down" size={16} color={COLORS.info} />
+            </View>
+            <Text style={styles.statLabel}>Нийт татсан</Text>
+            <Text style={styles.statValue}>
+              {formatMoney(wallet?.totalWithdrawn || 0)}₮
+            </Text>
+          </View>
+        </Card>
+
+        {/* Recent Transactions */}
+        {recentTransactions.length > 0 && (
+          <View style={styles.transactionsSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Сүүлийн гүйлгээ</Text>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('Profile', { screen: 'TransactionHistory' })
+                }
+              >
+                <Text style={styles.seeAllText}>Бүгд</Text>
+              </TouchableOpacity>
+            </View>
+            {recentTransactions.map((transaction) => (
+              <TransactionItem key={transaction._id} transaction={transaction} />
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 };
 
@@ -152,111 +221,181 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  header: {
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: COLORS.textPrimary,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+  },
   balanceCard: {
-    margin: 16,
-    backgroundColor: COLORS.primary,
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 24,
+    overflow: 'hidden',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  balanceCardInner: {
+    position: 'relative',
+    zIndex: 1,
+  },
+  balanceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   balanceLabel: {
-    fontSize: 14,
     color: COLORS.white,
+    fontSize: 14,
     opacity: 0.9,
-    marginBottom: 8,
+    fontWeight: '500',
   },
   balanceAmount: {
-    fontSize: 36,
-    fontWeight: 'bold',
     color: COLORS.white,
-    marginBottom: 16,
+    fontSize: 44,
+    fontWeight: '900',
+    marginBottom: 20,
+  },
+  currency: {
+    fontSize: 32,
+    fontWeight: '700',
+    opacity: 0.8,
   },
   balanceDetails: {
     flexDirection: 'row',
-    paddingTop: 16,
+    paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: COLORS.white + '30',
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
   },
   balanceDetail: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  balanceDetailContent: {
+    marginLeft: 8,
   },
   balanceDetailDivider: {
     width: 1,
-    backgroundColor: COLORS.white + '30',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginHorizontal: 12,
   },
   balanceDetailLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.white,
-    opacity: 0.9,
-    marginBottom: 4,
+    opacity: 0.8,
+    marginBottom: 2,
   },
   balanceDetailValue: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: COLORS.white,
+  },
+  decorativeCircle1: {
+    position: 'absolute',
+    top: -40,
+    right: -40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  decorativeCircle2: {
+    position: 'absolute',
+    bottom: -60,
+    left: -60,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   actions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    paddingHorizontal: 8,
   },
   actionButton: {
     alignItems: 'center',
+    flex: 1,
   },
-  actionIcon: {
+  actionIconContainer: {
     width: 64,
     height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.white,
-    justifyContent: 'center',
+    borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
   },
   actionText: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
+    fontSize: 13,
+    color: COLORS.textSecondary,
     fontWeight: '600',
   },
   statsCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.textPrimary,
     marginBottom: 16,
   },
   statRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
+  statIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.glass,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
   statLabel: {
+    flex: 1,
     fontSize: 14,
     color: COLORS.textSecondary,
   },
   statValue: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: COLORS.textPrimary,
   },
   transactionsSection: {
-    paddingHorizontal: 16,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: COLORS.textPrimary,
   },
   seeAllText: {

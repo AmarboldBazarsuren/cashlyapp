@@ -1,6 +1,5 @@
 /**
- * Deposit Screen - Цэнэглэх (test only)
- * БАЙРШИЛ: Cashly.mn/App/src/screens/wallet/DepositScreen.js
+ * Premium Deposit Screen
  */
 
 import React, { useState } from 'react';
@@ -9,8 +8,11 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Icon from 'react-native-vector-icons/Ionicons';
 import Toast from 'react-native-toast-message';
 import { deposit } from '../../services/walletService';
 import { useApp } from '../../context/AppContext';
@@ -40,7 +42,7 @@ const DepositScreen = ({ navigation }) => {
 
     Alert.alert(
       'Цэнэглэх',
-      `${formatMoney(parseFloat(amount))}₮ цэнэглэх үү?\n\n⚠️ Энэ нь test цэнэглэлт. Production дээр төлбөрийн системтэй холбогдоно.`,
+      `${formatMoney(parseFloat(amount))}₮ цэнэглэх үү?\n\nЭнэ нь test цэнэглэлт.`,
       [
         { text: 'Болих', style: 'cancel' },
         {
@@ -79,73 +81,119 @@ const DepositScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Card style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>Одоогийн үлдэгдэл</Text>
-        <Text style={styles.balanceAmount}>
-          {formatMoney(wallet?.balance || 0)}₮
-        </Text>
-      </Card>
+    <View style={styles.container}>
+      {/* Header */}
+      <LinearGradient
+        colors={[COLORS.background, COLORS.backgroundSecondary]}
+        style={styles.header}
+      >
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Цэнэглэх</Text>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
 
-      <Card style={styles.warningCard}>
-        <Text style={styles.warningTitle}>⚠️ Анхааруулга</Text>
-        <Text style={styles.warningText}>
-          Энэ нь test цэнэглэлт функц юм. Production дээр төлбөрийн системтэй
-          (QPay, Social Pay гэх мэт) холбогдоно.
-        </Text>
-      </Card>
-
-      <View style={styles.section}>
-        <Text style={styles.label}>Цэнэглэх дүн</Text>
-        <Input
-          placeholder="Дүн оруулах"
-          value={amount}
-          onChangeText={setAmount}
-          keyboardType="numeric"
-          suffix="₮"
-        />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.label}>Түргэн сонголт</Text>
-        <View style={styles.quickAmounts}>
-          {quickAmounts.map((quickAmount) => (
-            <Button
-              key={quickAmount}
-              title={formatMoney(quickAmount) + '₮'}
-              onPress={() => setAmount(quickAmount.toString())}
-              variant="outline"
-              style={styles.quickButton}
-            />
-          ))}
-        </View>
-      </View>
-
-      {amount && parseFloat(amount) >= MIN_DEPOSIT_AMOUNT && (
-        <Card style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Цэнэглэх дүн:</Text>
-            <Text style={styles.summaryValue}>
-              {formatMoney(parseFloat(amount))}₮
-            </Text>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Balance Card */}
+        <LinearGradient
+          colors={[COLORS.success, COLORS.successLight]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.balanceCard}
+        >
+          <View style={styles.balanceCardInner}>
+            <Icon name="wallet" size={32} color={COLORS.white} />
+            <View style={styles.balanceContent}>
+              <Text style={styles.balanceLabel}>Одоогийн үлдэгдэл</Text>
+              <Text style={styles.balanceAmount}>
+                {formatMoney(wallet?.balance || 0)}₮
+              </Text>
+            </View>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Шинэ үлдэгдэл:</Text>
-            <Text style={styles.summaryValueTotal}>
-              {formatMoney((wallet?.balance || 0) + parseFloat(amount))}₮
-            </Text>
+        </LinearGradient>
+
+        {/* Warning Card */}
+        <Card variant="glass" style={styles.warningCard}>
+          <View style={styles.warningHeader}>
+            <Icon name="information-circle" size={24} color={COLORS.warning} />
+            <Text style={styles.warningTitle}>Анхааруулга</Text>
           </View>
+          <Text style={styles.warningText}>
+            Энэ нь test цэнэглэлт функц юм. Production дээр төлбөрийн системтэй холбогдоно.
+          </Text>
         </Card>
-      )}
 
-      <Button
-        title="Цэнэглэх"
-        onPress={handleDeposit}
-        loading={loading}
-        style={styles.depositButton}
-        disabled={!amount || parseFloat(amount) < MIN_DEPOSIT_AMOUNT}
-      />
-    </ScrollView>
+        {/* Amount Input */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Цэнэглэх дүн</Text>
+          <Input
+            placeholder="Дүн оруулах"
+            value={amount}
+            onChangeText={setAmount}
+            keyboardType="numeric"
+            suffix="₮"
+          />
+        </View>
+
+        {/* Quick Amounts */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Түргэн сонголт</Text>
+          <View style={styles.quickAmounts}>
+            {quickAmounts.map((quickAmount) => (
+              <TouchableOpacity
+                key={quickAmount}
+                onPress={() => setAmount(quickAmount.toString())}
+                activeOpacity={0.7}
+                style={styles.quickAmountWrapper}
+              >
+                <LinearGradient
+                  colors={[COLORS.glass, COLORS.glassHighlight]}
+                  style={styles.quickAmountButton}
+                >
+                  <Text style={styles.quickAmountText}>
+                    {formatMoney(quickAmount)}₮
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Summary */}
+        {amount && parseFloat(amount) >= MIN_DEPOSIT_AMOUNT && (
+          <Card variant="gradient" style={styles.summaryCard}>
+            <Text style={styles.summaryTitle}>Нэгтгэл</Text>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Цэнэглэх дүн:</Text>
+              <Text style={styles.summaryValue}>
+                {formatMoney(parseFloat(amount))}₮
+              </Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabelTotal}>Шинэ үлдэгдэл:</Text>
+              <Text style={styles.summaryValueTotal}>
+                {formatMoney((wallet?.balance || 0) + parseFloat(amount))}₮
+              </Text>
+            </View>
+          </Card>
+        )}
+
+        <Button
+          title="Цэнэглэх"
+          onPress={handleDeposit}
+          loading={loading}
+          style={styles.depositButton}
+          disabled={!amount || parseFloat(amount) < MIN_DEPOSIT_AMOUNT}
+        />
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+    </View>
   );
 };
 
@@ -153,33 +201,75 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.glass,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  scrollView: {
+    flex: 1,
+    padding: 20,
   },
   balanceCard: {
-    marginBottom: 16,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: COLORS.success,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  balanceCardInner: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
+  balanceContent: {
+    marginLeft: 16,
+  },
   balanceLabel: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: 8,
+    fontSize: 13,
+    color: COLORS.white,
+    opacity: 0.9,
+    marginBottom: 4,
   },
   balanceAmount: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: COLORS.primary,
+    fontSize: 24,
+    fontWeight: '900',
+    color: COLORS.white,
   },
   warningCard: {
-    marginBottom: 16,
-    backgroundColor: COLORS.warning + '10',
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.warning,
+    marginBottom: 24,
+  },
+  warningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   warningTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.textPrimary,
-    marginBottom: 8,
+    marginLeft: 12,
   },
   warningText: {
     fontSize: 14,
@@ -189,23 +279,41 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
-  label: {
+  sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.textPrimary,
     marginBottom: 12,
   },
   quickAmounts: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -4,
+    marginHorizontal: -6,
   },
-  quickButton: {
-    flex: 1,
-    minWidth: '45%',
-    margin: 4,
+  quickAmountWrapper: {
+    width: '50%',
+    paddingHorizontal: 6,
+    marginBottom: 12,
+  },
+  quickAmountButton: {
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+  },
+  quickAmountText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
   },
   summaryCard: {
+    marginBottom: 24,
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
     marginBottom: 16,
   },
   summaryRow: {
@@ -218,17 +326,27 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   summaryValue: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.textPrimary,
   },
-  summaryValueTotal: {
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: 12,
+  },
+  summaryLabelTotal: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  summaryValueTotal: {
+    fontSize: 20,
+    fontWeight: '900',
     color: COLORS.success,
   },
   depositButton: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
 });
 
