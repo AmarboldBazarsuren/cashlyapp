@@ -6,6 +6,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../constants/config';
+console.log('🔗 API_URL:', API_URL); // ← Энийг нэмэх
 
 const api = axios.create({
   baseURL: API_URL,
@@ -18,6 +19,8 @@ const api = axios.create({
 // Request interceptor - Token оруулах
 api.interceptors.request.use(
   async (config) => {
+        console.log('📤 API Request:', config.url); // ← Энийг нэмэх
+
     const token = await AsyncStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -25,6 +28,8 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+        console.log('❌ Request Error:', error); // ← Энийг нэмэх
+
     return Promise.reject(error);
   }
 );
@@ -32,9 +37,13 @@ api.interceptors.request.use(
 // Response interceptor - Алдаа боловсруулах
 api.interceptors.response.use(
   (response) => {
+        console.log('✅ API Response:', response.config.url); // ← Энийг нэмэх
+
     return response.data;
   },
   async (error) => {
+        console.log('❌ Response Error:', error.message); // ← Энийг нэмэх
+
     if (error.response) {
       // 401 - Token хүчингүй, logout хийх
       if (error.response.status === 401) {
