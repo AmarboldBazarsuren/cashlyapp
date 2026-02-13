@@ -1,12 +1,9 @@
 /**
  * CASHLY APP - Main Component
- * БАЙРШИЛ: Cashly.mn/App/App.js
+ * ЗАСВАР: StatusBar translucent=false → хуудас status bar-ын ард ордоггүй болно
  */
 
 import React from 'react';
-import * as Font from 'expo-font';
-import { Ionicons } from '@expo/vector-icons';
-
 import { StatusBar, LogBox } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -17,8 +14,6 @@ import { AppProvider } from './src/context/AppContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { COLORS } from './src/constants/colors';
 
-
-// Warning-уудыг нуух (production дээр)
 LogBox.ignoreAllLogs();
 
 const App = () => {
@@ -27,9 +22,11 @@ const App = () => {
       <AuthProvider>
         <AppProvider>
           <NavigationContainer>
+         
             <StatusBar
-              barStyle="dark-content"
-              backgroundColor={COLORS.white}
+              barStyle="light-content"
+              backgroundColor={COLORS.background}
+              translucent={false}
             />
             <AppNavigator />
             <Toast />
