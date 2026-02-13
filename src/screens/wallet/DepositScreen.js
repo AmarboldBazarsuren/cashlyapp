@@ -1,5 +1,6 @@
 /**
- * Premium Deposit Screen
+ * Premium Deposit Screen - FIXED
+ * SafeAreaView, KeyboardAvoidingView, CustomAlert
  */
 
 import React, { useState } from 'react';
@@ -9,7 +10,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -19,6 +23,7 @@ import { useApp } from '../../context/AppContext';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Card from '../../components/common/Card';
+import CustomAlert from '../../components/common/CustomAlert';
 import { COLORS } from '../../constants/colors';
 import { MIN_DEPOSIT_AMOUNT } from '../../constants/config';
 import { formatMoney } from '../../utils/formatters';
@@ -27,10 +32,11 @@ const DepositScreen = ({ navigation }) => {
   const { wallet, setWallet } = useApp();
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
 
   const quickAmounts = [10000, 50000, 100000, 500000];
 
-  const handleDeposit = async () => {
+  const handleDeposit = () => {
     if (!amount || parseFloat(amount) < MIN_DEPOSIT_AMOUNT) {
       Toast.show({
         type: 'error',
@@ -40,164 +46,184 @@ const DepositScreen = ({ navigation }) => {
       return;
     }
 
-    Alert.alert(
-      'Цэнэглэх',
-      `${formatMoney(parseFloat(amount))}₮ цэнэглэх үү?\n\nЭнэ нь test цэнэглэлт.`,
-      [
-        { text: 'Болих', style: 'cancel' },
-        {
-          text: 'Цэнэглэх',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              const response = await deposit(
-                parseFloat(amount),
-                'admin',
-                'TEST_' + Date.now()
-              );
+    setAlertVisible(true);
+  };
 
-              if (response.success) {
-                Toast.show({
-                  type: 'success',
-                  text1: 'Амжилттай',
-                  text2: response.message,
-                });
-                setWallet(response.data.wallet);
-                navigation.goBack();
-              }
-            } catch (error) {
-              Toast.show({
-                type: 'error',
-                text1: 'Алдаа',
-                text2: error.message || 'Цэнэглэлт хийхэд алдаа гарлаа',
-              });
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
+  const confirmDeposit = async () => {
+    setLoading(true);
+    try {
+      const response = await deposit(
+        parseFloat(amount),
+        'admin',
+        'TEST_' + Date.now()
+      );
+
+      if (response.success) {
+        Toast.show({
+          type: 'success',
+          text1: 'Амжилттай',
+          text2: response.message,
+        });
+        setWallet(response.data.wallet);
+        navigation.goBack();
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Алдаа',
+        text2: error.message || 'Цэнэглэлт хийхэд алдаа гарлаа',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={[COLORS.background, COLORS.backgroundSecondary]}
-        style={styles.header}
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+      
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Цэнэглэх</Text>
-        <View style={{ width: 40 }} />
-      </LinearGradient>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Balance Card */}
+        {/* Header */}
         <LinearGradient
-          colors={[COLORS.success, COLORS.successLight]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.balanceCard}
+          colors={[COLORS.background, COLORS.backgroundSecondary]}
+          style={styles.header}
         >
-          <View style={styles.balanceCardInner}>
-            <Icon name="wallet" size={32} color={COLORS.white} />
-            <View style={styles.balanceContent}>
-              <Text style={styles.balanceLabel}>Одоогийн үлдэгдэл</Text>
-              <Text style={styles.balanceAmount}>
-                {formatMoney(wallet?.balance || 0)}₮
-              </Text>
-            </View>
-          </View>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Цэнэглэх</Text>
+          <View style={{ width: 40 }} />
         </LinearGradient>
 
-        {/* Warning Card */}
-        <Card variant="glass" style={styles.warningCard}>
-          <View style={styles.warningHeader}>
-            <Icon name="information-circle" size={24} color={COLORS.warning} />
-            <Text style={styles.warningTitle}>Анхааруулга</Text>
-          </View>
-          <Text style={styles.warningText}>
-            Энэ нь test цэнэглэлт функц юм. Production дээр төлбөрийн системтэй холбогдоно.
-          </Text>
-        </Card>
-
-        {/* Amount Input */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Цэнэглэх дүн</Text>
-          <Input
-            placeholder="Дүн оруулах"
-            value={amount}
-            onChangeText={setAmount}
-            keyboardType="numeric"
-            suffix="₮"
-          />
-        </View>
-
-        {/* Quick Amounts */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Түргэн сонголт</Text>
-          <View style={styles.quickAmounts}>
-            {quickAmounts.map((quickAmount) => (
-              <TouchableOpacity
-                key={quickAmount}
-                onPress={() => setAmount(quickAmount.toString())}
-                activeOpacity={0.7}
-                style={styles.quickAmountWrapper}
-              >
-                <LinearGradient
-                  colors={[COLORS.glass, COLORS.glassHighlight]}
-                  style={styles.quickAmountButton}
-                >
-                  <Text style={styles.quickAmountText}>
-                    {formatMoney(quickAmount)}₮
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Summary */}
-        {amount && parseFloat(amount) >= MIN_DEPOSIT_AMOUNT && (
-          <Card variant="gradient" style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Нэгтгэл</Text>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Цэнэглэх дүн:</Text>
-              <Text style={styles.summaryValue}>
-                {formatMoney(parseFloat(amount))}₮
-              </Text>
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Balance Card */}
+          <LinearGradient
+            colors={[COLORS.success, COLORS.successLight]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.balanceCard}
+          >
+            <View style={styles.balanceCardInner}>
+              <Icon name="wallet" size={32} color={COLORS.white} />
+              <View style={styles.balanceContent}>
+                <Text style={styles.balanceLabel}>Одоогийн үлдэгдэл</Text>
+                <Text style={styles.balanceAmount}>
+                  {formatMoney(wallet?.balance || 0)}₮
+                </Text>
+              </View>
             </View>
-            <View style={styles.divider} />
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabelTotal}>Шинэ үлдэгдэл:</Text>
-              <Text style={styles.summaryValueTotal}>
-                {formatMoney((wallet?.balance || 0) + parseFloat(amount))}₮
-              </Text>
+          </LinearGradient>
+
+          {/* Warning Card */}
+          <Card variant="glass" style={styles.warningCard}>
+            <View style={styles.warningHeader}>
+              <Icon name="information-circle" size={24} color={COLORS.warning} />
+              <Text style={styles.warningTitle}>Анхааруулга</Text>
             </View>
+            <Text style={styles.warningText}>
+              Энэ нь test цэнэглэлт функц юм. Production дээр төлбөрийн системтэй холбогдоно.
+            </Text>
           </Card>
-        )}
 
-        <Button
-          title="Цэнэглэх"
-          onPress={handleDeposit}
-          loading={loading}
-          style={styles.depositButton}
-          disabled={!amount || parseFloat(amount) < MIN_DEPOSIT_AMOUNT}
-        />
+          {/* Amount Input */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Цэнэглэх дүн</Text>
+            <Input
+              placeholder="Дүн оруулах"
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="numeric"
+              suffix="₮"
+            />
+          </View>
 
-        <View style={{ height: 100 }} />
-      </ScrollView>
-    </View>
+          {/* Quick Amounts */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Түргэн сонголт</Text>
+            <View style={styles.quickAmounts}>
+              {quickAmounts.map((quickAmount) => (
+                <TouchableOpacity
+                  key={quickAmount}
+                  onPress={() => setAmount(quickAmount.toString())}
+                  activeOpacity={0.7}
+                  style={styles.quickAmountWrapper}
+                >
+                  <LinearGradient
+                    colors={[COLORS.glass, COLORS.glassHighlight]}
+                    style={styles.quickAmountButton}
+                  >
+                    <Text style={styles.quickAmountText}>
+                      {formatMoney(quickAmount)}₮
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Summary */}
+          {amount && parseFloat(amount) >= MIN_DEPOSIT_AMOUNT && (
+            <Card variant="gradient" style={styles.summaryCard}>
+              <Text style={styles.summaryTitle}>Нэгтгэл</Text>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Цэнэглэх дүн:</Text>
+                <Text style={styles.summaryValue}>
+                  {formatMoney(parseFloat(amount))}₮
+                </Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabelTotal}>Шинэ үлдэгдэл:</Text>
+                <Text style={styles.summaryValueTotal}>
+                  {formatMoney((wallet?.balance || 0) + parseFloat(amount))}₮
+                </Text>
+              </View>
+            </Card>
+          )}
+
+          <Button
+            title="Цэнэглэх"
+            onPress={handleDeposit}
+            loading={loading}
+            style={styles.depositButton}
+            disabled={!amount || parseFloat(amount) < MIN_DEPOSIT_AMOUNT}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      <CustomAlert
+        visible={alertVisible}
+        onClose={() => setAlertVisible(false)}
+        title="Цэнэглэх"
+        message={`${formatMoney(parseFloat(amount || 0))}₮ цэнэглэх үү?\n\nЭнэ нь test цэнэглэлт.`}
+        type="info"
+        buttons={[
+          { text: 'Болих', style: 'cancel' },
+          { text: 'Цэнэглэх', onPress: confirmDeposit }
+        ]}
+      />
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -206,7 +232,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
@@ -227,7 +253,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     padding: 20,
+    paddingBottom: 150,
   },
   balanceCard: {
     borderRadius: 20,

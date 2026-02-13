@@ -1,6 +1,6 @@
 /**
- * Premium Home Screen - Modern Dark Theme
- * With Glassmorphism & Gradient Cards
+ * Premium Home Screen - FIXED VERSION
+ * SafeAreaView, Loan Types, Better Layout
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -11,27 +11,26 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  Animated,
+  SafeAreaView,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Toast from 'react-native-toast-message';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
-import { getProfile, payCreditCheckFee } from '../../services/userService';
+import { getProfile } from '../../services/userService';
 import { getWallet } from '../../services/walletService';
 import { getActiveLoans } from '../../services/loanService';
 import Card from '../../components/common/Card';
-import Button from '../../components/common/Button';
 import { COLORS } from '../../constants/colors';
 import { formatMoney } from '../../utils/formatters';
-import { CREDIT_CHECK_FEE } from '../../constants/config';
 
 const HomeScreen = ({ navigation }) => {
   const { user, updateUser } = useAuth();
   const { wallet, setWallet, activeLoans, setActiveLoans } = useApp();
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -59,271 +58,296 @@ const HomeScreen = ({ navigation }) => {
     setRefreshing(false);
   }, []);
 
-  return (
-    <View style={styles.container}>
-      {/* Premium Header with Gradient */}
-      <LinearGradient
-        colors={[COLORS.background, COLORS.backgroundSecondary]}
-        style={styles.header}
-      >
-        <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.greeting}>Сайн байна уу,</Text>
-            <Text style={styles.userName}>{user?.name || 'Хэрэглэгч'} 👋</Text>
-          </View>
-          <TouchableOpacity style={styles.notificationButton}>
-            <LinearGradient
-              colors={[COLORS.primary, COLORS.accent]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.notificationGradient}
-            >
-              <Icon name="notifications-outline" size={22} color={COLORS.white} />
-              <View style={styles.notificationBadge} />
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh}
-            tintColor={COLORS.primary}
-          />
+  const loanTypes = [
+    {
+      id: 'digital',
+      title: 'Дижитал зээл',
+      subtitle: 'Хурдан, хялбар',
+      icon: 'flash',
+      gradient: [COLORS.gradientStart, COLORS.gradientMiddle],
+      available: true,
+      onPress: () => {
+        if (user?.kycStatus !== 'approved') {
+          Toast.show({
+            type: 'info',
+            text1: 'Эхлээд хувийн мэдээлэл баталгаажуулна уу',
+          });
+          navigation.navigate('KYCInfo');
+          return;
         }
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Premium Wallet Card with Gradient */}
-        <LinearGradient
-          colors={[COLORS.gradientStart, COLORS.gradientMiddle, COLORS.gradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.walletCard}
-        >
-          <View style={styles.walletCardInner}>
-            <View style={styles.walletHeader}>
-              <Text style={styles.walletLabel}>Хэтэвчний үлдэгдэл</Text>
-              <TouchableOpacity>
-                <Icon name="eye-outline" size={20} color={COLORS.white} />
-              </TouchableOpacity>
-            </View>
-            
-            <Text style={styles.walletBalance}>
-              {formatMoney(wallet?.balance || 0)}
-              <Text style={styles.currency}>₮</Text>
-            </Text>
-            
-            <View style={styles.walletActions}>
-              <TouchableOpacity
-                style={styles.walletAction}
-                onPress={() => navigation.navigate('Wallet', { screen: 'Deposit' })}
-              >
-                <View style={styles.walletActionIcon}>
-                  <Icon name="add" size={20} color={COLORS.success} />
-                </View>
-                <Text style={styles.walletActionText}>Цэнэглэх</Text>
-              </TouchableOpacity>
-              
-              <View style={styles.walletActionDivider} />
-              
-              <TouchableOpacity
-                style={styles.walletAction}
-                onPress={() => navigation.navigate('Wallet', { screen: 'Withdraw' })}
-              >
-                <View style={styles.walletActionIcon}>
-                  <Icon name="arrow-down" size={20} color={COLORS.info} />
-                </View>
-                <Text style={styles.walletActionText}>Татах</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          
-          {/* Decorative circles */}
-          <View style={styles.walletCircle1} />
-          <View style={styles.walletCircle2} />
-        </LinearGradient>
+        navigation.navigate('ApplyLoan');
+      }
+    },
+    {
+      id: 'car',
+      title: 'Автомашин',
+      subtitle: 'Тун удахгүй',
+      icon: 'car-sport',
+      gradient: [COLORS.info, COLORS.infoLight],
+      available: false,
+      onPress: () => {
+        Toast.show({
+          type: 'info',
+          text1: 'Тун удахгүй',
+          text2: 'Автомашины барицаат зээл удахгүй нэмэгдэнэ',
+        });
+      }
+    },
+    {
+      id: 'property',
+      title: 'Үл хөдлөх хөрөнгө',
+      subtitle: 'Тун удахгүй',
+      icon: 'home',
+      gradient: [COLORS.success, COLORS.successLight],
+      available: false,
+      onPress: () => {
+        Toast.show({
+          type: 'info',
+          text1: 'Тун удахгүй',
+          text2: 'Үл хөдлөх хөрөнгийн барицаат зээл удахгүй нэмэгдэнэ',
+        });
+      }
+    },
+    {
+      id: 'business',
+      title: 'Бизнес зээл',
+      subtitle: 'Тун удахгүй',
+      icon: 'briefcase',
+      gradient: [COLORS.warning, COLORS.warningLight],
+      available: false,
+      onPress: () => {
+        Toast.show({
+          type: 'info',
+          text1: 'Тун удахгүй',
+          text2: 'Бизнес зээл удахгүй нэмэгдэнэ',
+        });
+      }
+    },
+  ];
 
-        {/* Credit Limit Card */}
-        {user?.creditLimit > 0 && (
-          <Card variant="glass" style={styles.creditCard}>
-            <View style={styles.creditHeader}>
-              <View>
-                <Text style={styles.creditLabel}>Зээлийн эрх</Text>
-                <Text style={styles.creditAmount}>
-                  {formatMoney(user.creditLimit)}₮
-                </Text>
-              </View>
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+      
+      <View style={styles.container}>
+        <LinearGradient
+          colors={[COLORS.background, COLORS.backgroundSecondary]}
+          style={styles.header}
+        >
+          <View style={styles.headerContent}>
+            <View>
+              <Text style={styles.greeting}>Сайн байна уу,</Text>
+              <Text style={styles.userName}>{user?.name || 'Хэрэглэгч'} 👋</Text>
+            </View>
+            <TouchableOpacity style={styles.notificationButton}>
               <LinearGradient
-                colors={[COLORS.success, COLORS.successLight]}
+                colors={[COLORS.primary, COLORS.accent]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={styles.creditBadge}
+                style={styles.notificationGradient}
               >
-                <Icon name="checkmark-circle" size={20} color={COLORS.white} />
+                <Icon name="notifications-outline" size={22} color={COLORS.white} />
+                <View style={styles.notificationBadge} />
               </LinearGradient>
-            </View>
-          </Card>
-        )}
-
-        {/* Apply Loan Button */}
-        <LinearGradient
-          colors={[COLORS.gradientStart, COLORS.accent]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.applyLoanGradient}
-        >
-          <TouchableOpacity 
-            style={styles.applyLoanButton}
-            onPress={() => navigation.navigate('ApplyLoan')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.applyLoanIcon}>
-              <Icon name="cash-outline" size={28} color={COLORS.white} />
-            </View>
-            <View style={styles.applyLoanContent}>
-              <Text style={styles.applyLoanTitle}>Зээл авах</Text>
-              <Text style={styles.applyLoanSubtitle}>
-                Хурдан, найдвартай зээл
-              </Text>
-            </View>
-            <Icon name="arrow-forward" size={24} color={COLORS.white} />
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
         </LinearGradient>
 
-        {/* Active Loans Section */}
-        {activeLoans && activeLoans.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Идэвхтэй зээлүүд</Text>
-              <TouchableOpacity>
-                <Text style={styles.seeAllText}>Бүгд →</Text>
-              </TouchableOpacity>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor={COLORS.primary}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          <LinearGradient
+            colors={[COLORS.gradientStart, COLORS.gradientMiddle, COLORS.gradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.walletCard}
+          >
+            <View style={styles.walletCardInner}>
+              <View style={styles.walletHeader}>
+                <Text style={styles.walletLabel}>Хэтэвчний үлдэгдэл</Text>
+                <TouchableOpacity>
+                  <Icon name="eye-outline" size={20} color={COLORS.white} />
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={styles.walletBalance}>
+                {formatMoney(wallet?.balance || 0)}
+                <Text style={styles.currency}>₮</Text>
+              </Text>
+              
+              <View style={styles.walletActions}>
+                <TouchableOpacity
+                  style={styles.walletAction}
+                  onPress={() => navigation.navigate('Wallet', { screen: 'Deposit' })}
+                >
+                  <View style={styles.walletActionIcon}>
+                    <Icon name="add" size={20} color={COLORS.success} />
+                  </View>
+                  <Text style={styles.walletActionText}>Цэнэглэх</Text>
+                </TouchableOpacity>
+                
+                <View style={styles.walletActionDivider} />
+                
+                <TouchableOpacity
+                  style={styles.walletAction}
+                  onPress={() => navigation.navigate('Wallet', { screen: 'Withdraw' })}
+                >
+                  <View style={styles.walletActionIcon}>
+                    <Icon name="arrow-down" size={20} color={COLORS.info} />
+                  </View>
+                  <Text style={styles.walletActionText}>Татах</Text>
+                </TouchableOpacity>
+              </View>
             </View>
             
-            {activeLoans.slice(0, 2).map((loan) => (
-              <TouchableOpacity
-                key={loan._id}
-                onPress={() =>
-                  navigation.navigate('Loans', {
-                    screen: 'LoanDetails',
-                    params: { loanId: loan._id },
-                  })
-                }
-              >
-                <Card variant="glass" style={styles.loanCard}>
-                  <View style={styles.loanCardHeader}>
-                    <View>
-                      <Text style={styles.loanNumber}>{loan.loanNumber}</Text>
-                      <Text style={styles.loanAmount}>
-                        {formatMoney(loan.principal)}₮
+            <View style={styles.walletCircle1} />
+            <View style={styles.walletCircle2} />
+          </LinearGradient>
+
+          {user?.creditLimit > 0 && (
+            <Card variant="glass" style={styles.creditCard}>
+              <View style={styles.creditHeader}>
+                <View>
+                  <Text style={styles.creditLabel}>Зээлийн эрх</Text>
+                  <Text style={styles.creditAmount}>
+                    {formatMoney(user.creditLimit)}₮
+                  </Text>
+                </View>
+                <LinearGradient
+                  colors={[COLORS.success, COLORS.successLight]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.creditBadge}
+                >
+                  <Icon name="checkmark-circle" size={20} color={COLORS.white} />
+                </LinearGradient>
+              </View>
+            </Card>
+          )}
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Зээлийн төрлүүд</Text>
+            <View style={styles.loanTypesGrid}>
+              {loanTypes.map((type) => (
+                <TouchableOpacity
+                  key={type.id}
+                  style={styles.loanTypeCard}
+                  onPress={type.onPress}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={type.gradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.loanTypeGradient}
+                  >
+                    <View style={styles.loanTypeContent}>
+                      <View style={styles.loanTypeIconContainer}>
+                        <Icon name={type.icon} size={32} color={COLORS.white} />
+                      </View>
+                      <View style={styles.loanTypeTextContainer}>
+                        <Text style={styles.loanTypeTitle}>{type.title}</Text>
+                        <Text style={styles.loanTypeSubtitle}>{type.subtitle}</Text>
+                      </View>
+                      {!type.available && (
+                        <View style={styles.comingSoonBadge}>
+                          <Text style={styles.comingSoonText}>Удахгүй</Text>
+                        </View>
+                      )}
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {activeLoans && activeLoans.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Идэвхтэй зээлүүд</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Loans')}>
+                  <Text style={styles.seeAllText}>Бүгд →</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {activeLoans.slice(0, 2).map((loan) => (
+                <TouchableOpacity
+                  key={loan._id}
+                  onPress={() =>
+                    navigation.navigate('Loans', {
+                      screen: 'LoanDetails',
+                      params: { loanId: loan._id },
+                    })
+                  }
+                >
+                  <Card variant="glass" style={styles.loanCard}>
+                    <View style={styles.loanCardHeader}>
+                      <View>
+                        <Text style={styles.loanNumber}>{loan.loanNumber}</Text>
+                        <Text style={styles.loanAmount}>
+                          {formatMoney(loan.principal)}₮
+                        </Text>
+                      </View>
+                      <View style={[
+                        styles.loanStatusBadge,
+                        { backgroundColor: COLORS.info + '30' },
+                      ]}>
+                        <Text style={[styles.loanStatusText, { color: COLORS.info }]}>
+                          Идэвхтэй
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.loanProgress}>
+                      <View style={styles.loanProgressBar}>
+                        <LinearGradient
+                          colors={[COLORS.primary, COLORS.accent]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={[
+                            styles.loanProgressFill,
+                            { 
+                              width: `${((loan.paidAmount / loan.totalAmount) * 100)}%` 
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.loanProgressText}>
+                        {formatMoney(loan.remainingAmount)}₮ үлдсэн
                       </Text>
                     </View>
-                    <View style={[
-                      styles.loanStatusBadge,
-                      { backgroundColor: COLORS.info + '30' },
-                    ]}>
-                      <Text style={[styles.loanStatusText, { color: COLORS.info }]}>
-                        Идэвхтэй
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  <View style={styles.loanProgress}>
-                    <View style={styles.loanProgressBar}>
-                      <LinearGradient
-                        colors={[COLORS.primary, COLORS.accent]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={[
-                          styles.loanProgressFill,
-                          { 
-                            width: `${((loan.paidAmount / loan.totalAmount) * 100)}%` 
-                          },
-                        ]}
-                      />
-                    </View>
-                    <Text style={styles.loanProgressText}>
-                      {formatMoney(loan.remainingAmount)}₮ үлдсэн
-                    </Text>
-                  </View>
-                </Card>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {/* Quick Actions Grid */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Түргэн үйлдлүүд</Text>
-          <View style={styles.quickActionsGrid}>
-            <TouchableOpacity
-              style={styles.quickAction}
-              onPress={() => navigation.navigate('Loans')}
-            >
-              <LinearGradient
-                colors={[COLORS.primary + '20', COLORS.primary + '10']}
-                style={styles.quickActionIcon}
-              >
-                <Icon name="wallet-outline" size={28} color={COLORS.primary} />
-              </LinearGradient>
-              <Text style={styles.quickActionText}>Миний зээлүүд</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickAction}
-              onPress={() =>
-                navigation.navigate('Profile', { screen: 'TransactionHistory' })
-              }
-            >
-              <LinearGradient
-                colors={[COLORS.success + '20', COLORS.success + '10']}
-                style={styles.quickActionIcon}
-              >
-                <Icon name="receipt-outline" size={28} color={COLORS.success} />
-              </LinearGradient>
-              <Text style={styles.quickActionText}>Түүх</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickAction}
-              onPress={() => navigation.navigate('Profile')}
-            >
-              <LinearGradient
-                colors={[COLORS.accent + '20', COLORS.accent + '10']}
-                style={styles.quickActionIcon}
-              >
-                <Icon name="person-outline" size={28} color={COLORS.accent} />
-              </LinearGradient>
-              <Text style={styles.quickActionText}>Профайл</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.quickAction}>
-              <LinearGradient
-                colors={[COLORS.warning + '20', COLORS.warning + '10']}
-                style={styles.quickActionIcon}
-              >
-                <Icon name="help-circle-outline" size={28} color={COLORS.warning} />
-              </LinearGradient>
-              <Text style={styles.quickActionText}>Тусламж</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
-    </View>
+                  </Card>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
   header: {
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
@@ -365,6 +389,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingTop: 0,
+    paddingBottom: 120,
   },
   walletCard: {
     borderRadius: 24,
@@ -456,7 +481,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   creditCard: {
-    marginBottom: 16,
+    marginBottom: 24,
   },
   creditHeader: {
     flexDirection: 'row',
@@ -480,44 +505,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  applyLoanGradient: {
-    borderRadius: 20,
-    marginBottom: 24,
-    overflow: 'hidden',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  applyLoanButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-  },
-  applyLoanIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  applyLoanContent: {
-    flex: 1,
-  },
-  applyLoanTitle: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  applyLoanSubtitle: {
-    color: COLORS.white,
-    fontSize: 13,
-    opacity: 0.9,
-  },
   section: {
     marginBottom: 24,
   },
@@ -531,11 +518,66 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     fontSize: 20,
     fontWeight: '700',
+    marginBottom: 16,
   },
   seeAllText: {
     color: COLORS.primary,
     fontSize: 14,
     fontWeight: '600',
+  },
+  loanTypesGrid: {
+    gap: 12,
+  },
+  loanTypeCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 12,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  loanTypeGradient: {
+    padding: 20,
+  },
+  loanTypeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  loanTypeIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  loanTypeTextContainer: {
+    flex: 1,
+  },
+  loanTypeTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.white,
+    marginBottom: 4,
+  },
+  loanTypeSubtitle: {
+    fontSize: 13,
+    color: COLORS.white,
+    opacity: 0.9,
+  },
+  comingSoonBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  comingSoonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.white,
   },
   loanCard: {
     marginBottom: 12,
@@ -582,30 +624,6 @@ const styles = StyleSheet.create({
   loanProgressText: {
     color: COLORS.textSecondary,
     fontSize: 13,
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -8,
-  },
-  quickAction: {
-    width: '50%',
-    paddingHorizontal: 8,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  quickActionIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  quickActionText: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
-    fontWeight: '600',
   },
 });
 

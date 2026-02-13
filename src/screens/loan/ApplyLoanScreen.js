@@ -1,5 +1,6 @@
 /**
- * Premium Apply Loan Screen
+ * Premium Apply Loan Screen - FIXED
+ * SafeAreaView, Better scrolling
  */
 
 import React, { useState } from 'react';
@@ -9,6 +10,9 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -75,150 +79,158 @@ const ApplyLoanScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={[COLORS.background, COLORS.backgroundSecondary]}
-        style={styles.header}
-      >
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Зээл авах</Text>
-        <View style={{ width: 40 }} />
-      </LinearGradient>
-
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Credit Limit Card */}
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+      
+      <View style={styles.container}>
+        {/* Header */}
         <LinearGradient
-          colors={[COLORS.success, COLORS.successLight]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.creditCard}
+          colors={[COLORS.background, COLORS.backgroundSecondary]}
+          style={styles.header}
         >
-          <View style={styles.creditCardInner}>
-            <Icon name="shield-checkmark" size={32} color={COLORS.white} />
-            <View style={styles.creditContent}>
-              <Text style={styles.creditLabel}>Таны зээлийн эрх</Text>
-              <Text style={styles.creditAmount}>
-                {formatMoney(user?.creditLimit || 0)}₮
-              </Text>
-            </View>
-          </View>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Зээл авах</Text>
+          <View style={{ width: 40 }} />
         </LinearGradient>
 
-        {/* Amount Input */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Зээлийн дүн</Text>
-          <Input
-            placeholder="Дүн оруулах"
-            value={amount}
-            onChangeText={setAmount}
-            keyboardType="numeric"
-            suffix="₮"
-          />
-        </View>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Credit Limit Card */}
+          <LinearGradient
+            colors={[COLORS.success, COLORS.successLight]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.creditCard}
+          >
+            <View style={styles.creditCardInner}>
+              <Icon name="shield-checkmark" size={32} color={COLORS.white} />
+              <View style={styles.creditContent}>
+                <Text style={styles.creditLabel}>Таны зээлийн эрх</Text>
+                <Text style={styles.creditAmount}>
+                  {formatMoney(user?.creditLimit || 0)}₮
+                </Text>
+              </View>
+            </View>
+          </LinearGradient>
 
-        {/* Term Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Хугацаа</Text>
-          <View style={styles.termContainer}>
-            {LOAN_TERMS.map((termOption) => (
-              <TouchableOpacity
-                key={termOption.value}
-                onPress={() => setTerm(termOption.value)}
-                activeOpacity={0.7}
-              >
-                <LinearGradient
-                  colors={term === termOption.value 
-                    ? [COLORS.gradientStart, COLORS.gradientMiddle]
-                    : [COLORS.glass, COLORS.glass]
-                  }
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={[
-                    styles.termButton,
-                    term === termOption.value && styles.termButtonActive,
-                  ]}
-                >
-                  <Text style={[
-                    styles.termLabel,
-                    term === termOption.value && styles.termLabelActive,
-                  ]}>
-                    {termOption.label}
-                  </Text>
-                  <Text style={[
-                    styles.termRate,
-                    term === termOption.value && styles.termRateActive,
-                  ]}>
-                    {termOption.rate}% хүү
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
+          {/* Amount Input */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Зээлийн дүн</Text>
+            <Input
+              placeholder="Дүн оруулах"
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="numeric"
+              suffix="₮"
+            />
           </View>
-        </View>
 
-        {/* Summary Card */}
-        {amount && parseFloat(amount) >= MIN_LOAN_AMOUNT && (
-          <Card variant="gradient" style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Нэгтгэл</Text>
-            
-            <View style={styles.summaryRow}>
-              <Icon name="cash-outline" size={20} color={COLORS.textSecondary} />
-              <Text style={styles.summaryLabel}>Зээлийн дүн</Text>
-              <Text style={styles.summaryValue}>
-                {formatMoney(parseFloat(amount))}₮
-              </Text>
+          {/* Term Selection */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Хугацаа</Text>
+            <View style={styles.termContainer}>
+              {LOAN_TERMS.map((termOption) => (
+                <TouchableOpacity
+                  key={termOption.value}
+                  onPress={() => setTerm(termOption.value)}
+                  activeOpacity={0.7}
+                >
+                  <LinearGradient
+                    colors={term === termOption.value 
+                      ? [COLORS.gradientStart, COLORS.gradientMiddle]
+                      : [COLORS.glass, COLORS.glass]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[
+                      styles.termButton,
+                      term === termOption.value && styles.termButtonActive,
+                    ]}
+                  >
+                    <Text style={[
+                      styles.termLabel,
+                      term === termOption.value && styles.termLabelActive,
+                    ]}>
+                      {termOption.label}
+                    </Text>
+                    <Text style={[
+                      styles.termRate,
+                      term === termOption.value && styles.termRateActive,
+                    ]}>
+                      {termOption.rate}% хүү
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))}
             </View>
-            
-            <View style={styles.summaryRow}>
-              <Icon name="trending-up-outline" size={20} color={COLORS.textSecondary} />
-              <Text style={styles.summaryLabel}>Хүү ({interestRate}%)</Text>
-              <Text style={styles.summaryValue}>
-                {formatMoney(interestAmount)}₮
-              </Text>
-            </View>
-            
-            <View style={styles.divider} />
-            
-            <View style={styles.summaryRow}>
-              <Icon name="card-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.summaryLabelTotal}>Нийт төлөх</Text>
-              <Text style={styles.summaryValueTotal}>
-                {formatMoney(totalAmount)}₮
-              </Text>
-            </View>
-            
-            <View style={styles.summaryRow}>
-              <Icon name="time-outline" size={20} color={COLORS.textSecondary} />
-              <Text style={styles.summaryLabel}>Хугацаа</Text>
-              <Text style={styles.summaryValue}>{term} хоног</Text>
-            </View>
-          </Card>
-        )}
+          </View>
 
-        <Button
-          title="Зээл хүсэх"
-          onPress={handleApply}
-          loading={loading}
-          style={styles.applyButton}
-          disabled={!amount || parseFloat(amount) < MIN_LOAN_AMOUNT}
-        />
+          {/* Summary Card */}
+          {amount && parseFloat(amount) >= MIN_LOAN_AMOUNT && (
+            <Card variant="gradient" style={styles.summaryCard}>
+              <Text style={styles.summaryTitle}>Нэгтгэл</Text>
+              
+              <View style={styles.summaryRow}>
+                <Icon name="cash-outline" size={20} color={COLORS.textSecondary} />
+                <Text style={styles.summaryLabel}>Зээлийн дүн</Text>
+                <Text style={styles.summaryValue}>
+                  {formatMoney(parseFloat(amount))}₮
+                </Text>
+              </View>
+              
+              <View style={styles.summaryRow}>
+                <Icon name="trending-up-outline" size={20} color={COLORS.textSecondary} />
+                <Text style={styles.summaryLabel}>Хүү ({interestRate}%)</Text>
+                <Text style={styles.summaryValue}>
+                  {formatMoney(interestAmount)}₮
+                </Text>
+              </View>
+              
+              <View style={styles.divider} />
+              
+              <View style={styles.summaryRow}>
+                <Icon name="card-outline" size={20} color={COLORS.primary} />
+                <Text style={styles.summaryLabelTotal}>Нийт төлөх</Text>
+                <Text style={styles.summaryValueTotal}>
+                  {formatMoney(totalAmount)}₮
+                </Text>
+              </View>
+              
+              <View style={styles.summaryRow}>
+                <Icon name="time-outline" size={20} color={COLORS.textSecondary} />
+                <Text style={styles.summaryLabel}>Хугацаа</Text>
+                <Text style={styles.summaryValue}>{term} хоног</Text>
+              </View>
+            </Card>
+          )}
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
+          <Button
+            title="Зээл хүсэх"
+            onPress={handleApply}
+            loading={loading}
+            style={styles.applyButton}
+            disabled={!amount || parseFloat(amount) < MIN_LOAN_AMOUNT}
+          />
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -227,7 +239,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
@@ -248,7 +260,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     padding: 20,
+    paddingBottom: 150,
   },
   creditCard: {
     borderRadius: 20,

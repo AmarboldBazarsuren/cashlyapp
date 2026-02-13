@@ -1,5 +1,6 @@
 /**
- * Premium Profile Screen
+ * Premium Profile Screen - FIXED
+ * KYC Button нэмэгдсэн
  */
 
 import React from 'react';
@@ -9,28 +10,29 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
+  SafeAreaView,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../../context/AuthContext';
 import Card from '../../components/common/Card';
+import CustomAlert from '../../components/common/CustomAlert';
 import LoanStatusBadge from '../../components/loan/LoanStatusBadge';
 import { COLORS } from '../../constants/colors';
 import { formatMoney } from '../../utils/formatters';
 
 const ProfileScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
+  const [logoutAlertVisible, setLogoutAlertVisible] = React.useState(false);
 
   const handleLogout = () => {
-    Alert.alert('Гарах', 'Та гарахдаа итгэлтэй байна уу?', [
-      { text: 'Болих', style: 'cancel' },
-      {
-        text: 'Гарах',
-        style: 'destructive',
-        onPress: () => logout(),
-      },
-    ]);
+    setLogoutAlertVisible(true);
+  };
+
+  const confirmLogout = () => {
+    logout();
   };
 
   const menuItems = [
@@ -44,167 +46,203 @@ const ProfileScreen = ({ navigation }) => {
       icon: 'shield-checkmark-outline',
       title: 'Аюулгүй байдал',
       color: COLORS.success,
-      onPress: () => Alert.alert('Тусламж', 'Удахгүй нэмэгдэнэ'),
+      onPress: () => {},
     },
     {
       icon: 'help-circle-outline',
       title: 'Тусламж',
       color: COLORS.warning,
-      onPress: () => Alert.alert('Тусламж', 'Холбоо барих: support@cashly.mn'),
+      onPress: () => {},
     },
     {
       icon: 'information-circle-outline',
       title: 'Апп-ийн тухай',
       color: COLORS.info,
-      onPress: () => Alert.alert('Cashly', 'Version 1.0.0'),
+      onPress: () => {},
     },
   ];
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={[COLORS.background, COLORS.backgroundSecondary]}
-        style={styles.header}
-      >
-        <Text style={styles.headerTitle}>Профайл</Text>
-      </LinearGradient>
-
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* User Card with Gradient */}
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+      
+      <View style={styles.container}>
         <LinearGradient
-          colors={[COLORS.gradientStart, COLORS.gradientMiddle]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.userCard}
+          colors={[COLORS.background, COLORS.backgroundSecondary]}
+          style={styles.header}
         >
-          <View style={styles.userCardInner}>
-            <View style={styles.avatarContainer}>
-              <Text style={styles.avatar}>
-                {user?.name?.charAt(0).toUpperCase() || 'C'}
-              </Text>
-            </View>
-            <Text style={styles.userName}>{user?.name}</Text>
-            <Text style={styles.userPhone}>{user?.phoneNumber}</Text>
-            {user?.email && <Text style={styles.userEmail}>{user.email}</Text>}
-          </View>
-          
-          {/* Decorative circles */}
-          <View style={styles.userCardCircle1} />
-          <View style={styles.userCardCircle2} />
+          <Text style={styles.headerTitle}>Профайл</Text>
         </LinearGradient>
 
-        {/* KYC Status Card */}
-        <Card variant="glass" style={styles.kycCard}>
-          <View style={styles.kycHeader}>
-            <View style={styles.kycHeaderLeft}>
-              <Icon name="document-text-outline" size={24} color={COLORS.textPrimary} />
-              <Text style={styles.kycTitle}>KYC статус</Text>
-            </View>
-            <LoanStatusBadge status={user?.kycStatus} />
-          </View>
-          {user?.kycStatus === 'rejected' && user?.kycRejectedReason && (
-            <View style={styles.rejectedContainer}>
-              <Icon name="alert-circle" size={16} color={COLORS.danger} />
-              <Text style={styles.rejectedReason}>
-                {user.kycRejectedReason}
-              </Text>
-            </View>
-          )}
-        </Card>
-
-        {/* Credit Info Cards */}
-        {user?.creditLimit > 0 && (
-          <View style={styles.creditContainer}>
-            <Card variant="glass" style={styles.creditCardSmall}>
-              <View style={styles.creditIconContainer}>
-                <LinearGradient
-                  colors={[COLORS.success, COLORS.successLight]}
-                  style={styles.creditIcon}
-                >
-                  <Icon name="cash-outline" size={24} color={COLORS.white} />
-                </LinearGradient>
-              </View>
-              <Text style={styles.creditLabel}>Зээлийн эрх</Text>
-              <Text style={styles.creditValue}>
-                {formatMoney(user.creditLimit)}₮
-              </Text>
-            </Card>
-
-            <Card variant="glass" style={styles.creditCardSmall}>
-              <View style={styles.creditIconContainer}>
-                <LinearGradient
-                  colors={[COLORS.primary, COLORS.primaryLight]}
-                  style={styles.creditIcon}
-                >
-                  <Icon name="trending-up-outline" size={24} color={COLORS.white} />
-                </LinearGradient>
-              </View>
-              <Text style={styles.creditLabel}>Credit Score</Text>
-              <Text style={styles.creditValue}>{user.creditScore || 0}</Text>
-            </Card>
-          </View>
-        )}
-
-        {/* Menu Items */}
-        <Card variant="glass" style={styles.menuCard}>
-          {menuItems.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.menuItem,
-                index !== menuItems.length - 1 && styles.menuItemBorder,
-              ]}
-              onPress={item.onPress}
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuItemLeft}>
-                <View style={[
-                  styles.menuIconContainer,
-                  { backgroundColor: item.color + '20' }
-                ]}>
-                  <Icon name={item.icon} size={22} color={item.color} />
-                </View>
-                <Text style={styles.menuItemText}>{item.title}</Text>
-              </View>
-              <Icon name="chevron-forward" size={20} color={COLORS.textTertiary} />
-            </TouchableOpacity>
-          ))}
-        </Card>
-
-        {/* Logout Button */}
-        <TouchableOpacity 
-          style={styles.logoutButton}
-          onPress={handleLogout}
-          activeOpacity={0.7}
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
           <LinearGradient
-            colors={[COLORS.danger, COLORS.dangerLight]}
+            colors={[COLORS.gradientStart, COLORS.gradientMiddle]}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.logoutGradient}
+            end={{ x: 1, y: 1 }}
+            style={styles.userCard}
           >
-            <Icon name="log-out-outline" size={22} color={COLORS.white} />
-            <Text style={styles.logoutText}>Гарах</Text>
+            <View style={styles.userCardInner}>
+              <View style={styles.avatarContainer}>
+                <Text style={styles.avatar}>
+                  {user?.name?.charAt(0).toUpperCase() || 'C'}
+                </Text>
+              </View>
+              <Text style={styles.userName}>{user?.name}</Text>
+              <Text style={styles.userPhone}>{user?.phoneNumber}</Text>
+              {user?.email && <Text style={styles.userEmail}>{user.email}</Text>}
+            </View>
+            
+            <View style={styles.userCardCircle1} />
+            <View style={styles.userCardCircle2} />
           </LinearGradient>
-        </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
+          {/* KYC Button - not_submitted бол харагдана */}
+          {user?.kycStatus === 'not_submitted' && (
+            <TouchableOpacity
+              style={styles.kycActionButton}
+              onPress={() => navigation.navigate('KYCInfo')}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[COLORS.gradientStart, COLORS.gradientMiddle]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.kycActionGradient}
+              >
+                <Icon name="shield-checkmark-outline" size={24} color={COLORS.white} />
+                <View style={styles.kycActionText}>
+                  <Text style={styles.kycActionTitle}>Хувийн мэдээлэл баталгаажуулах</Text>
+                  <Text style={styles.kycActionSubtitle}>Зээл авахын тулд шаардлагатай</Text>
+                </View>
+                <Icon name="arrow-forward" size={20} color={COLORS.white} />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+          <Card variant="glass" style={styles.kycCard}>
+            <View style={styles.kycHeader}>
+              <View style={styles.kycHeaderLeft}>
+                <Icon name="document-text-outline" size={24} color={COLORS.textPrimary} />
+                <Text style={styles.kycTitle}>KYC статус</Text>
+              </View>
+              <LoanStatusBadge status={user?.kycStatus} />
+            </View>
+            {user?.kycStatus === 'rejected' && user?.kycRejectedReason && (
+              <View style={styles.rejectedContainer}>
+                <Icon name="alert-circle" size={16} color={COLORS.danger} />
+                <Text style={styles.rejectedReason}>
+                  {user.kycRejectedReason}
+                </Text>
+              </View>
+            )}
+          </Card>
+
+          {user?.creditLimit > 0 && (
+            <View style={styles.creditContainer}>
+              <Card variant="glass" style={styles.creditCardSmall}>
+                <View style={styles.creditIconContainer}>
+                  <LinearGradient
+                    colors={[COLORS.success, COLORS.successLight]}
+                    style={styles.creditIcon}
+                  >
+                    <Icon name="cash-outline" size={24} color={COLORS.white} />
+                  </LinearGradient>
+                </View>
+                <Text style={styles.creditLabel}>Зээлийн эрх</Text>
+                <Text style={styles.creditValue}>
+                  {formatMoney(user.creditLimit)}₮
+                </Text>
+              </Card>
+
+              <Card variant="glass" style={styles.creditCardSmall}>
+                <View style={styles.creditIconContainer}>
+                  <LinearGradient
+                    colors={[COLORS.primary, COLORS.primaryLight]}
+                    style={styles.creditIcon}
+                  >
+                    <Icon name="trending-up-outline" size={24} color={COLORS.white} />
+                  </LinearGradient>
+                </View>
+                <Text style={styles.creditLabel}>Credit Score</Text>
+                <Text style={styles.creditValue}>{user.creditScore || 0}</Text>
+              </Card>
+            </View>
+          )}
+
+          <Card variant="glass" style={styles.menuCard}>
+            {menuItems.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.menuItem,
+                  index !== menuItems.length - 1 && styles.menuItemBorder,
+                ]}
+                onPress={item.onPress}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuItemLeft}>
+                  <View style={[
+                    styles.menuIconContainer,
+                    { backgroundColor: item.color + '20' }
+                  ]}>
+                    <Icon name={item.icon} size={22} color={item.color} />
+                  </View>
+                  <Text style={styles.menuItemText}>{item.title}</Text>
+                </View>
+                <Icon name="chevron-forward" size={20} color={COLORS.textTertiary} />
+              </TouchableOpacity>
+            ))}
+          </Card>
+
+          <TouchableOpacity 
+            style={styles.logoutButton}
+            onPress={handleLogout}
+            activeOpacity={0.7}
+          >
+            <LinearGradient
+              colors={[COLORS.danger, COLORS.dangerLight]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.logoutGradient}
+            >
+              <Icon name="log-out-outline" size={22} color={COLORS.white} />
+              <Text style={styles.logoutText}>Гарах</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+
+      <CustomAlert
+        visible={logoutAlertVisible}
+        onClose={() => setLogoutAlertVisible(false)}
+        title="Гарах"
+        message="Та гарахдаа итгэлтэй байна уу?"
+        type="warning"
+        buttons={[
+          { text: 'Болих', style: 'cancel' },
+          { text: 'Гарах', onPress: confirmLogout, style: 'destructive' }
+        ]}
+      />
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
   header: {
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
@@ -215,7 +253,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     padding: 20,
+    paddingBottom: 120,
   },
   userCard: {
     borderRadius: 24,
@@ -283,6 +324,36 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 90,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  kycActionButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  kycActionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  kycActionText: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  kycActionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.white,
+    marginBottom: 2,
+  },
+  kycActionSubtitle: {
+    fontSize: 13,
+    color: COLORS.white,
+    opacity: 0.9,
   },
   kycCard: {
     marginBottom: 16,
