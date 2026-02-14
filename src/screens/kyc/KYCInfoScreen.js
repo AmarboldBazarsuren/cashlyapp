@@ -1,8 +1,10 @@
 /**
- * KYCInfoScreen.js - COMPLETE VERSION
- * Регистр: 2 үсэг select + 8 тоо input
- * Хүйс: select
- * Банк: select
+ * KYCInfoScreen.js - COMPLETE MULTI-STEP VERSION
+ * ✅ 7 алхамтай форм (step бүрт validation)
+ * ✅ Дараагийн/Өмнөх товч
+ * ✅ Сүүлийн алхам: "Мэдээлэл илгээх"
+ * ✅ Navigation warning
+ * ✅ Status: not_submitted → pending
  */
 
 import React, { useState, useEffect } from 'react';
@@ -16,23 +18,22 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import Toast from 'react-native-toast-message';
 import { useAuth } from '../../context/AuthContext';
-import { submitPersonalInfo } from '../../services/kycService';
+import { submitPersonalInfo, uploadDocument, submitKYC } from '../../services/kycService';
 import { COLORS } from '../../constants/colors';
 import { BANKS, EDUCATION_LEVELS, EMPLOYMENT_STATUS } from '../../constants/config';
 
-// ─── МОНГОЛ ҮСГҮҮД ────────────────────────────────────────────
 const MONGOLIAN_LETTERS = [
   'А', 'Б', 'В', 'Г', 'Д', 'Е', 'Ё', 'Ж', 'З', 'И', 'Й', 'К', 'Л', 'М',
   'Н', 'О', 'Ө', 'П', 'Р', 'С', 'Т', 'У', 'Ү', 'Ф', 'Х', 'Ц', 'Ч', 'Ш', 'Щ', 'Ъ', 'Ы', 'Ь', 'Э', 'Ю', 'Я'
 ];
 
 const STEPS = [
-  { id: 'personal', title: 'Хувийн мэдээлэл', icon: 'person-outline' },
+  { id: 'personal', title: 'Хувийн', icon: 'person-outline' },
   { id: 'employment', title: 'Ажил', icon: 'briefcase-outline' },
   { id: 'income', title: 'Орлого', icon: 'cash-outline' },
   { id: 'bank', title: 'Банк', icon: 'card-outline' },
   { id: 'address', title: 'Хаяг', icon: 'location-outline' },
-  { id: 'emergency', title: 'Холбоо барих', icon: 'call-outline' },
+  { id: 'emergency', title: 'Холбоо', icon: 'call-outline' },
   { id: 'documents', title: 'Баримт', icon: 'document-text-outline' },
 ];
 
@@ -40,19 +41,18 @@ const GENDERS = ['Эрэгтэй', 'Эмэгтэй', 'Бусад'];
 
 export default function KYCInfoScreen({ navigation }) {
   const { user, updateUser } = useAuth();
-  const [activeStep, setActiveStep] = useState('personal');
+  const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Modals
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showLetterModal, setShowLetterModal] = useState(null); // 'first' | 'second' | null
+  const [showLetterModal, setShowLetterModal] = useState(null);
   const [showGenderModal, setShowGenderModal] = useState(false);
   const [showBankModal, setShowBankModal] = useState(false);
   const [showEducationModal, setShowEducationModal] = useState(false);
   const [showEmploymentModal, setShowEmploymentModal] = useState(false);
 
-  // Form data
   const [formData, setFormData] = useState({
     lastName: user?.personalInfo?.lastName || '',
     firstName: user?.personalInfo?.firstName || '',
@@ -75,9 +75,9 @@ export default function KYCInfoScreen({ navigation }) {
     building: user?.personalInfo?.address?.building || '',
     apartment: user?.personalInfo?.address?.apartment || '',
     fullAddress: user?.personalInfo?.address?.fullAddress || '',
-    emergencyName: '',
-    emergencyRelationship: '',
-    emergencyPhone: '',
+    emergencyName: user?.personalInfo?.emergencyContacts?.[0]?.name || '',
+    emergencyRelationship: user?.personalInfo?.emergencyContacts?.[0]?.relationship || '',
+    emergencyPhone: user?.personalInfo?.emergencyContacts?.[0]?.phoneNumber || '',
     idCardFront: null,
     idCardBack: null,
     selfie: null,
@@ -133,31 +133,132 @@ export default function KYCInfoScreen({ navigation }) {
     }
   };
 
+  // ✅ VALIDATION - Алхам бүрийн бөглөсөн эсэхийг шалгах
+  const isStepValid = (stepId) => {
+    switch (stepId) {
+      case 'personal':
+        return formData.lastName && formData.firstName && formData.registerLetter1 && formData.registerLetter2 && formData.registerNumber.length === 8 && formData.gender && formData.birthDate;
+      case 'employment':
+        return formData.education && formData.employmentStatus;
+      case 'income':
+        return formData.monthlyIncome && parseFloat(formData.monthlyIncome) > 0;
+      case 'bank':
+        return formData.bankName && formData.accountNumber && formData.accountName;
+      case 'address':
+        return formData.city && formData.district;
+      case 'emergency':
+        return formData.emergencyName && formData.emergencyPhone && formData.emergencyPhone.length === 8;
+      case 'documents':
+        return formData.idCardFront && formData.idCardBack && formData.selfie;
+      default:
+        return true;
+    }
+  };
+
+  const handleNext = () => {
+    if (activeStepIndex < STEPS.length - 1) {
+      setActiveStepIndex(activeStepIndex + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (activeStepIndex > 0) {
+      setActiveStepIndex(activeStepIndex - 1);
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!formData.firstName || !formData.lastName) {
-      Toast.show({ type: 'error', text1: 'Овог, нэр оруулна уу' });
-      return;
-    }
-    const fullRegister = formData.registerLetter1 + formData.registerLetter2 + formData.registerNumber;
-    if (fullRegister.length === 10 && !/^[А-ЯӨҮ]{2}[0-9]{8}$/.test(fullRegister)) {
-      Toast.show({ type: 'error', text1: 'Регистр буруу' });
-      return;
-    }
-    if (formData.emergencyPhone && !/^[0-9]{8}$/.test(formData.emergencyPhone)) {
-      Toast.show({ type: 'error', text1: 'Утас 8 оронтой байх ёстой' });
-      return;
+    // ✅ Бүх алхам бөглөгдсөн эсэхийг шалгах
+    for (let i = 0; i < STEPS.length; i++) {
+      if (!isStepValid(STEPS[i].id)) {
+        Toast.show({ type: 'error', text1: `"${STEPS[i].title}" алхамыг бөглөнө үү` });
+        setActiveStepIndex(i);
+        return;
+      }
     }
 
     setLoading(true);
     try {
-      const payload = {
-        ...formData,
-        registerNumber: fullRegister,
+      // Step 1: Хувийн мэдээлэл илгээх (зургагүйгээр)
+      const personalInfoPayload = {
+        lastName: formData.lastName,
+        firstName: formData.firstName,
+        registerLetter1: formData.registerLetter1,
+        registerLetter2: formData.registerLetter2,
+        registerNumber: formData.registerNumber,
+        gender: formData.gender,
+        birthDate: formData.birthDate,
+        education: formData.education,
+        employmentStatus: formData.employmentStatus,
+        companyName: formData.companyName,
+        position: formData.position,
+        monthlyIncome: parseFloat(formData.monthlyIncome),
+        bankName: formData.bankName,
+        accountNumber: formData.accountNumber,
+        accountName: formData.accountName,
+        city: formData.city,
+        district: formData.district,
+        khoroo: formData.khoroo,
+        building: formData.building,
+        apartment: formData.apartment,
+        fullAddress: formData.fullAddress,
+        emergencyName: formData.emergencyName,
+        emergencyRelationship: formData.emergencyRelationship,
+        emergencyPhone: formData.emergencyPhone,
       };
-      const response = await submitPersonalInfo(payload);
-      if (response.success) {
-        Toast.show({ type: 'success', text1: 'Амжилттай хадгалагдлаа' });
-        updateUser(response.data.user);
+
+      const res1 = await submitPersonalInfo(personalInfoPayload);
+      if (!res1.success) {
+        Toast.show({ type: 'error', text1: 'Алдаа', text2: res1.message });
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: Зургуудыг upload хийх
+      console.log('📤 Starting image uploads...');
+      
+      const idFrontRes = await uploadDocument('idCardFront', formData.idCardFront);
+      console.log('📸 ID Front Response:', JSON.stringify(idFrontRes, null, 2));
+      
+      const idBackRes = await uploadDocument('idCardBack', formData.idCardBack);
+      console.log('📸 ID Back Response:', JSON.stringify(idBackRes, null, 2));
+      
+      const selfieRes = await uploadDocument('selfie', formData.selfie);
+      console.log('📸 Selfie Response:', JSON.stringify(selfieRes, null, 2));
+
+      // ✅ URL гаргах (axios interceptor response.data буцаадаг)
+      const idFrontUrl = idFrontRes?.data?.url;
+      const idBackUrl = idBackRes?.data?.url;
+      const selfieUrl = selfieRes?.data?.url;
+
+      console.log('📋 Extracted URLs:', { idFrontUrl, idBackUrl, selfieUrl });
+
+      // Validation: Бүх зураг URL байгаа эсэхийг шалгах
+      if (!idFrontUrl || !idBackUrl || !selfieUrl) {
+        console.error('❌ Missing URLs:', { idFrontUrl, idBackUrl, selfieUrl });
+        Toast.show({ type: 'error', text1: 'Зураг upload хийгдээгүй байна' });
+        setLoading(false);
+        return;
+      }
+
+      // Step 3: KYC илгээх (зургууд хамт)
+      const kycPayload = {
+        idCardFront: idFrontUrl,
+        idCardBack: idBackUrl,
+        selfie: selfieUrl,
+      };
+
+      console.log('📤 Submitting KYC payload:', kycPayload);
+      console.log('📤 Payload type:', typeof kycPayload);
+      console.log('📤 Payload keys:', Object.keys(kycPayload));
+      console.log('📤 Payload values:', Object.values(kycPayload));
+
+      const res2 = await submitKYC(kycPayload);
+      console.log('✅ submitKYC response:', res2);
+
+      if (res2.success) {
+        Toast.show({ type: 'success', text1: 'Амжилттай илгээгдлээ!' });
+        updateUser({ ...user, kycStatus: 'pending' });
         setHasUnsavedChanges(false);
         navigation.goBack();
       }
@@ -169,16 +270,15 @@ export default function KYCInfoScreen({ navigation }) {
   };
 
   const renderContent = () => {
-    switch (activeStep) {
+    const step = STEPS[activeStepIndex];
+    switch (step.id) {
       case 'personal':
         return (
           <>
             <FieldRow label="Овог *" value={formData.lastName} onChangeText={(v) => handleInputChange('lastName', v)} />
             <FieldRow label="Нэр *" value={formData.firstName} onChangeText={(v) => handleInputChange('firstName', v)} />
-            
-            {/* Регистр */}
             <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>Регистр</Text>
+              <Text style={styles.fieldLabel}>Регистр *</Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TouchableOpacity style={styles.letterBtn} onPress={() => setShowLetterModal('first')}>
                   <Text style={styles.letterBtnText}>{formData.registerLetter1 || 'А'}</Text>
@@ -197,19 +297,15 @@ export default function KYCInfoScreen({ navigation }) {
                 />
               </View>
             </View>
-
-            {/* Хүйс */}
             <TouchableOpacity style={styles.fieldRow} onPress={() => setShowGenderModal(true)}>
-              <Text style={styles.fieldLabel}>Хүйс</Text>
+              <Text style={styles.fieldLabel}>Хүйс *</Text>
               <View style={styles.fieldInputWrap}>
                 <Text style={styles.fieldInput}>{formData.gender || 'Сонгох'}</Text>
                 <Ionicons name="chevron-down" size={16} color="#ccc" />
               </View>
             </TouchableOpacity>
-
-            {/* Төрсөн огноо */}
             <TouchableOpacity style={styles.fieldRow} onPress={() => setShowDatePicker(true)}>
-              <Text style={styles.fieldLabel}>Төрсөн огноо</Text>
+              <Text style={styles.fieldLabel}>Төрсөн огноо *</Text>
               <View style={styles.fieldInputWrap}>
                 <Text style={styles.fieldInput}>{formData.birthDate || 'YYYY-MM-DD'}</Text>
                 <Ionicons name="calendar-outline" size={16} color="#ccc" />
@@ -230,52 +326,47 @@ export default function KYCInfoScreen({ navigation }) {
         return (
           <>
             <TouchableOpacity style={styles.fieldRow} onPress={() => setShowEducationModal(true)}>
-              <Text style={styles.fieldLabel}>Боловсрол</Text>
+              <Text style={styles.fieldLabel}>Боловсрол *</Text>
               <View style={styles.fieldInputWrap}>
                 <Text style={styles.fieldInput}>{formData.education || 'Сонгох'}</Text>
                 <Ionicons name="chevron-down" size={16} color="#ccc" />
               </View>
             </TouchableOpacity>
-
             <TouchableOpacity style={styles.fieldRow} onPress={() => setShowEmploymentModal(true)}>
-              <Text style={styles.fieldLabel}>Ажлын байдал</Text>
+              <Text style={styles.fieldLabel}>Ажлын байдал *</Text>
               <View style={styles.fieldInputWrap}>
                 <Text style={styles.fieldInput}>{formData.employmentStatus || 'Сонгох'}</Text>
                 <Ionicons name="chevron-down" size={16} color="#ccc" />
               </View>
             </TouchableOpacity>
-
             <FieldRow label="Компани" value={formData.companyName} onChangeText={(v) => handleInputChange('companyName', v)} />
             <FieldRow label="Албан тушаал" value={formData.position} onChangeText={(v) => handleInputChange('position', v)} />
           </>
         );
 
       case 'income':
-        return (
-          <FieldRow label="Сарын орлого (₮)" value={formData.monthlyIncome} onChangeText={(v) => handleInputChange('monthlyIncome', v)} keyboardType="numeric" />
-        );
+        return <FieldRow label="Сарын орлого (₮) *" value={formData.monthlyIncome} onChangeText={(v) => handleInputChange('monthlyIncome', v)} keyboardType="numeric" />;
 
       case 'bank':
         return (
           <>
             <TouchableOpacity style={styles.fieldRow} onPress={() => setShowBankModal(true)}>
-              <Text style={styles.fieldLabel}>Банк</Text>
+              <Text style={styles.fieldLabel}>Банк *</Text>
               <View style={styles.fieldInputWrap}>
                 <Text style={styles.fieldInput}>{formData.bankName || 'Сонгох'}</Text>
                 <Ionicons name="chevron-down" size={16} color="#ccc" />
               </View>
             </TouchableOpacity>
-
-            <FieldRow label="Дансны дугаар" value={formData.accountNumber} onChangeText={(v) => handleInputChange('accountNumber', v)} />
-            <FieldRow label="Дансны нэр" value={formData.accountName} onChangeText={(v) => handleInputChange('accountName', v)} />
+            <FieldRow label="Дансны дугаар *" value={formData.accountNumber} onChangeText={(v) => handleInputChange('accountNumber', v)} />
+            <FieldRow label="Дансны нэр *" value={formData.accountName} onChangeText={(v) => handleInputChange('accountName', v)} />
           </>
         );
 
       case 'address':
         return (
           <>
-            <FieldRow label="Хот" value={formData.city} onChangeText={(v) => handleInputChange('city', v)} />
-            <FieldRow label="Дүүрэг" value={formData.district} onChangeText={(v) => handleInputChange('district', v)} />
+            <FieldRow label="Хот *" value={formData.city} onChangeText={(v) => handleInputChange('city', v)} />
+            <FieldRow label="Дүүрэг *" value={formData.district} onChangeText={(v) => handleInputChange('district', v)} />
             <FieldRow label="Хороо" value={formData.khoroo} onChangeText={(v) => handleInputChange('khoroo', v)} />
             <FieldRow label="Байр" value={formData.building} onChangeText={(v) => handleInputChange('building', v)} />
             <FieldRow label="Тоот" value={formData.apartment} onChangeText={(v) => handleInputChange('apartment', v)} />
@@ -286,9 +377,9 @@ export default function KYCInfoScreen({ navigation }) {
       case 'emergency':
         return (
           <>
-            <FieldRow label="Нэр" value={formData.emergencyName} onChangeText={(v) => handleInputChange('emergencyName', v)} />
+            <FieldRow label="Нэр *" value={formData.emergencyName} onChangeText={(v) => handleInputChange('emergencyName', v)} />
             <FieldRow label="Хамаарал" value={formData.emergencyRelationship} onChangeText={(v) => handleInputChange('emergencyRelationship', v)} />
-            <FieldRow label="Утас (8 орон)" value={formData.emergencyPhone} onChangeText={(v) => handleInputChange('emergencyPhone', v.replace(/[^0-9]/g, ''))} keyboardType="phone-pad" maxLength={8} />
+            <FieldRow label="Утас (8 орон) *" value={formData.emergencyPhone} onChangeText={(v) => handleInputChange('emergencyPhone', v.replace(/[^0-9]/g, ''))} keyboardType="phone-pad" maxLength={8} />
           </>
         );
 
@@ -296,9 +387,9 @@ export default function KYCInfoScreen({ navigation }) {
         return (
           <>
             {[
-              { key: 'idCardFront', label: 'Иргэний үнэмлэх (урд)' },
-              { key: 'idCardBack', label: 'Иргэний үнэмлэх (ард)' },
-              { key: 'selfie', label: 'Селфи зураг' },
+              { key: 'idCardFront', label: 'Иргэний үнэмлэх (урд) *' },
+              { key: 'idCardBack', label: 'Иргэний үнэмлэх (ард) *' },
+              { key: 'selfie', label: 'Селфи зураг *' },
             ].map((doc) => (
               <TouchableOpacity key={doc.key} style={styles.uploadBtn} onPress={() => pickImage(doc.key)}>
                 <Ionicons name={formData[doc.key] ? 'checkmark-circle' : 'cloud-upload-outline'} size={20} color={formData[doc.key] ? '#10B981' : '#999'} />
@@ -313,6 +404,9 @@ export default function KYCInfoScreen({ navigation }) {
     }
   };
 
+  const currentStepValid = isStepValid(STEPS[activeStepIndex].id);
+  const isLastStep = activeStepIndex === STEPS.length - 1;
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" backgroundColor="#f5f6fa" translucent={false} />
@@ -321,80 +415,69 @@ export default function KYCInfoScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>KYC</Text>
+        <Text style={styles.headerTitle}>KYC Мэдээлэл</Text>
         <View style={{ width: 36 }} />
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          {/* Steps */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stepsRow}>
-            {STEPS.map((step) => (
+            {STEPS.map((step, i) => (
               <TouchableOpacity
                 key={step.id}
-                style={[styles.stepChip, activeStep === step.id && styles.stepChipActive]}
-                onPress={() => setActiveStep(step.id)}
+                style={[styles.stepChip, activeStepIndex === i && styles.stepChipActive]}
+                onPress={() => setActiveStepIndex(i)}
               >
-                <Ionicons name={step.icon} size={14} color={activeStep === step.id ? '#fff' : '#999'} />
-                <Text style={[styles.stepChipText, activeStep === step.id && { color: '#fff' }]}>{step.title}</Text>
+                <Ionicons name={step.icon} size={14} color={activeStepIndex === i ? '#fff' : '#999'} />
+                <Text style={[styles.stepChipText, activeStepIndex === i && { color: '#fff' }]}>{step.title}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
 
           <View style={styles.mainCard}>
             {renderContent()}
-            <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit} disabled={loading}>
-              <LinearGradient colors={['#6C63FF', '#4ECDC4']} style={styles.saveBtnGradient}>
-                <Text style={styles.saveBtnText}>{loading ? 'Хадгалж байна...' : 'Хадгалах'}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+
+            {/* Navigation Buttons */}
+            <View style={styles.navRow}>
+              {activeStepIndex > 0 && (
+                <TouchableOpacity style={styles.navBtn} onPress={handlePrev}>
+                  <Text style={styles.navBtnText}>Өмнөх</Text>
+                </TouchableOpacity>
+              )}
+
+              {!isLastStep ? (
+                <TouchableOpacity
+                  style={[styles.navBtn, styles.navBtnPrimary, !currentStepValid && styles.navBtnDisabled]}
+                  onPress={handleNext}
+                  disabled={!currentStepValid}
+                >
+                  <LinearGradient colors={currentStepValid ? ['#6C63FF', '#4ECDC4'] : ['#ddd', '#ccc']} style={styles.navBtnGradient}>
+                    <Text style={styles.navBtnTextPrimary}>Дараагийн</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.navBtn, styles.navBtnPrimary, (!currentStepValid || loading) && styles.navBtnDisabled]}
+                  onPress={handleSubmit}
+                  disabled={!currentStepValid || loading}
+                >
+                  <LinearGradient colors={currentStepValid && !loading ? ['#6C63FF', '#4ECDC4'] : ['#ddd', '#ccc']} style={styles.navBtnGradient}>
+                    <Text style={styles.navBtnTextPrimary}>{loading ? 'Илгээж байна...' : 'Мэдээлэл илгээх'}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Letter Modal */}
-      <SelectModal
-        visible={showLetterModal !== null}
-        title="Үсэг сонгох"
-        items={MONGOLIAN_LETTERS}
-        onSelect={(item) => selectLetter(showLetterModal === 'first' ? 1 : 2, item)}
-        onClose={() => setShowLetterModal(null)}
-      />
-
-      {/* Gender Modal */}
-      <SelectModal
-        visible={showGenderModal}
-        title="Хүйс сонгох"
-        items={GENDERS}
-        onSelect={(item) => { handleInputChange('gender', item); setShowGenderModal(false); }}
-        onClose={() => setShowGenderModal(false)}
-      />
-
-      {/* Bank Modal */}
-      <SelectModal
-        visible={showBankModal}
-        title="Банк сонгох"
-        items={BANKS}
-        onSelect={(item) => { handleInputChange('bankName', item); setShowBankModal(false); }}
-        onClose={() => setShowBankModal(false)}
-      />
-
-      {/* Education Modal */}
-      <SelectModal
-        visible={showEducationModal}
-        title="Боловсрол сонгох"
-        items={EDUCATION_LEVELS}
-        onSelect={(item) => { handleInputChange('education', item); setShowEducationModal(false); }}
-        onClose={() => setShowEducationModal(false)}
-      />
-
-      {/* Employment Modal */}
-      <SelectModal
-        visible={showEmploymentModal}
-        title="Ажлын байдал"
-        items={EMPLOYMENT_STATUS}
-        onSelect={(item) => { handleInputChange('employmentStatus', item); setShowEmploymentModal(false); }}
-        onClose={() => setShowEmploymentModal(false)}
-      />
+      {/* Modals */}
+      <SelectModal visible={showLetterModal !== null} title="Үсэг сонгох" items={MONGOLIAN_LETTERS} onSelect={(item) => selectLetter(showLetterModal === 'first' ? 1 : 2, item)} onClose={() => setShowLetterModal(null)} />
+      <SelectModal visible={showGenderModal} title="Хүйс сонгох" items={GENDERS} onSelect={(item) => { handleInputChange('gender', item); setShowGenderModal(false); }} onClose={() => setShowGenderModal(false)} />
+      <SelectModal visible={showBankModal} title="Банк сонгох" items={BANKS} onSelect={(item) => { handleInputChange('bankName', item); setShowBankModal(false); }} onClose={() => setShowBankModal(false)} />
+      <SelectModal visible={showEducationModal} title="Боловсрол сонгох" items={EDUCATION_LEVELS} onSelect={(item) => { handleInputChange('education', item); setShowEducationModal(false); }} onClose={() => setShowEducationModal(false)} />
+      <SelectModal visible={showEmploymentModal} title="Ажлын байдал" items={EMPLOYMENT_STATUS} onSelect={(item) => { handleInputChange('employmentStatus', item); setShowEmploymentModal(false); }} onClose={() => setShowEmploymentModal(false)} />
     </SafeAreaView>
   );
 }
@@ -457,9 +540,13 @@ const styles = StyleSheet.create({
   registerInput: { flex: 1, height: 50, borderRadius: 10, backgroundColor: '#f0f0f0', paddingHorizontal: 12, fontSize: 15, fontWeight: '500' },
   uploadBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 16, backgroundColor: '#f0f0f0', borderRadius: 12, paddingHorizontal: 16, marginBottom: 12 },
   uploadBtnText: { fontSize: 14, fontWeight: '600', color: '#333' },
-  saveBtn: { marginTop: 24, borderRadius: 14, overflow: 'hidden' },
-  saveBtnGradient: { paddingVertical: 16, alignItems: 'center' },
-  saveBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  navRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
+  navBtn: { flex: 1, borderRadius: 14, overflow: 'hidden' },
+  navBtnPrimary: { flex: 2 },
+  navBtnDisabled: { opacity: 0.5 },
+  navBtnGradient: { paddingVertical: 16, alignItems: 'center' },
+  navBtnText: { fontSize: 16, fontWeight: '700', color: '#6C63FF', textAlign: 'center', paddingVertical: 16 },
+  navBtnTextPrimary: { fontSize: 16, fontWeight: '700', color: '#fff' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '70%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
