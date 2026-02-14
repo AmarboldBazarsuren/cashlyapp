@@ -1,6 +1,6 @@
 /**
- * Transaction History Screen - Гүйлгээний түүх
- * БАЙРШИЛ: Cashly.mn/App/src/screens/profile/TransactionHistoryScreen.js
+ * Transaction History Screen - FIXED
+ * SafeAreaView + Header нэмсэн
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -11,14 +11,19 @@ import {
   FlatList,
   RefreshControl,
   TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { getTransactions } from '../../services/walletService';
 import { useApp } from '../../context/AppContext';
 import TransactionItem from '../../components/wallet/TransactionItem';
 import Loading from '../../components/common/Loading';
 import { COLORS } from '../../constants/colors';
 
-const TransactionHistoryScreen = () => {
+const TransactionHistoryScreen = ({ navigation }) => {
   const { transactions, setTransactions } = useApp();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,7 +64,24 @@ const TransactionHistoryScreen = () => {
   ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} translucent={false} />
+
+      {/* Header */}
+      <LinearGradient
+        colors={[COLORS.background, COLORS.backgroundSecondary]}
+        style={styles.header}
+      >
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Гүйлгээний түүх</Text>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
+
       {/* Filter */}
       <View style={styles.filterContainer}>
         {filters.map((item) => (
@@ -90,22 +112,51 @@ const TransactionHistoryScreen = () => {
         renderItem={({ item }) => <TransactionItem transaction={item} />}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+          />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
+            <Ionicons name="receipt-outline" size={64} color={COLORS.textTertiary} />
             <Text style={styles.emptyText}>Гүйлгээ байхгүй байна</Text>
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 20,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.glass,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
   },
   filterContainer: {
     flexDirection: 'row',
@@ -119,7 +170,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginHorizontal: 4,
     borderRadius: 8,
-    backgroundColor: COLORS.grayLight,
+    backgroundColor: COLORS.glass,
     alignItems: 'center',
   },
   filterButtonActive: {
@@ -145,6 +196,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: COLORS.textSecondary,
+    marginTop: 16,
   },
 });
 

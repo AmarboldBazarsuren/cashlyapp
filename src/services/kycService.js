@@ -1,16 +1,16 @@
 /**
- * KYC Service - Хувийн мэдээлэл баталгаажуулах API
- * БАЙРШИЛ: src/services/kycService.js
+ * KYC Service - UPDATED
+ * submitPersonalInfo API нэмсэн
  */
 
 import api from './api';
 
 /**
- * Хувийн мэдээлэл илгээх (Step 1)
+ * Хувийн мэдээлэл илгээх (Step 1) - баримт бичиггүйгээр
  */
 export const submitPersonalInfo = async (personalData) => {
   try {
-    const response = await api.post('/user/submit-kyc', personalData);
+    const response = await api.post('/user/submit-personal-info', personalData);
     return response;
   } catch (error) {
     throw error;
@@ -19,18 +19,17 @@ export const submitPersonalInfo = async (personalData) => {
 
 /**
  * Зураг (баримт бичиг) upload хийх
- * @param {FormData} formData - зурагтай FormData
+ * @param {String} documentType - 'idCardFront', 'idCardBack', 'selfie'
+ * @param {String} base64Data - Base64 зураг
  */
-export const uploadDocument = async (formData) => {
+export const uploadDocument = async (documentType, base64Data) => {
   try {
-    const response = await api.post('/user/upload-document', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+    const response = await api.post('/user/upload-document', {
+      documentType,
+      base64Data,
     });
     return response;
   } catch (error) {
-    // Upload endpoint байхгүй тохиолдолд base64 ашиглана
     throw error;
   }
 };

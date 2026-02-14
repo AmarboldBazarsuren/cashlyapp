@@ -1,5 +1,6 @@
 /**
- * Premium Main Navigator with Custom Tab Bar
+ * Premium Main Navigator - FIXED
+ * Emoji → Ionicons
  */
 
 import React from 'react';
@@ -7,7 +8,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 
 // Screens
 import HomeScreen from '../screens/home/HomeScreen';
@@ -91,14 +92,14 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
                     end={{ x: 1, y: 1 }}
                     style={styles.activeTabBackground}
                   >
-                    <Icon 
+                    <Ionicons 
                       name={iconNames[route.name]} 
                       size={24} 
                       color={COLORS.white}
                     />
                   </LinearGradient>
                 ) : (
-                  <Icon 
+                  <Ionicons 
                     name={iconNames[route.name]} 
                     size={24} 
                     color={COLORS.textTertiary}
@@ -197,7 +198,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    // Android дээр button-ээс дээш байрлуулах
     paddingBottom: Platform.OS === 'android' ? 20 : 0,
   },
   tabBarGradient: {
