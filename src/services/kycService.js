@@ -41,9 +41,9 @@ export const uploadDocument = async (documentType, base64Data) => {
 export const submitKYC = async (documents) => {
   try {
     const response = await api.post('/user/submit-kyc', {
-      idCardFrontBase64: documents.idCardFront,
-      idCardBackBase64: documents.idCardBack,
-      selfieBase64: documents.selfie,
+      idCardFront: documents.idCardFront,
+      idCardBack: documents.idCardBack,
+      selfie: documents.selfie,
     });
     return response;
   } catch (error) {
