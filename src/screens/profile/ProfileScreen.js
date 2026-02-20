@@ -1,6 +1,7 @@
 /**
- * ProfileScreen.js - FIXED
- * Navigation бүрэн ажиллана
+ * ProfileScreen.js - UPDATED
+ * ✅ KYC болон хувийн мэдээлэл нэгтгэсэн
+ * ✅ Зөвхөн харах горим (read-only)
  */
 
 import React from 'react';
@@ -15,19 +16,10 @@ import { COLORS } from '../../constants/colors';
 
 const MENU_SECTIONS = [
   {
-    title: 'Миний мэдээлэл',
-    items: [
-      { icon: 'person-outline', color: '#5B5BD6', bg: '#EEEEFF', label: 'Хувийн мэдээлэл', screen: 'KYCInfo' },
-      { icon: 'shield-checkmark-outline', color: '#10B981', bg: '#D1FAE5', label: 'KYC Баталгаажуулалт', screen: 'KYCInfo' },
-      { icon: 'card-outline', color: '#22C7BE', bg: '#E5FAFA', label: 'Банкны мэдээлэл', screen: 'KYCInfo' },
-    ],
-  },
-  {
     title: 'Гүйлгээ & Зээл',
     items: [
       { icon: 'receipt-outline', color: '#F97316', bg: '#FFEDD5', label: 'Гүйлгээний түүх', screen: 'TransactionHistory' },
       { icon: 'cash-outline', color: '#5B5BD6', bg: '#EEEEFF', label: 'Зээлийн түүх', screen: 'MyLoansMain' },
-      { icon: 'document-text-outline', color: '#EAB308', bg: '#FEF9C3', label: 'Гэрээнүүд', screen: 'Contracts' },
     ],
   },
   {
@@ -61,27 +53,26 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const handleMenuPress = (screen) => {
-    // Screen бүрт зөв navigation хийх
     switch (screen) {
-      case 'KYCInfo':
-        navigation.navigate('Home', { screen: 'KYCInfo' });
-        break;
       case 'TransactionHistory':
         navigation.navigate('TransactionHistory');
         break;
       case 'MyLoansMain':
         navigation.navigate('Loans', { screen: 'MyLoansMain' });
         break;
-      case 'Contracts':
       case 'Notifications':
       case 'ChangePassword':
       case 'Support':
-        // Одоогоор хийгдээгүй хуудсууд
         alert(`"${screen}" хуудас тун удахгүй нэмэгдэнэ`);
         break;
       default:
         break;
     }
+  };
+
+  const handlePersonalInfo = () => {
+    // Navigate to personal info view screen
+    navigation.navigate('PersonalInfoView');
   };
 
   return (
@@ -107,7 +98,7 @@ export default function ProfileScreen({ navigation }) {
 
           <TouchableOpacity
             style={[styles.kycBadge, { backgroundColor: 'rgba(255,255,255,0.22)' }]}
-            onPress={() => navigation.navigate('Home', { screen: 'KYCInfo' })}
+            onPress={user?.kycStatus === 'not_submitted' ? () => navigation.navigate('Home', { screen: 'KYCInfo' }) : null}
           >
             <Ionicons name={kyc.icon} size={13} color="#fff" />
             <Text style={styles.kycBadgeText}>{kyc.label}</Text>
@@ -135,6 +126,29 @@ export default function ProfileScreen({ navigation }) {
             ))}
           </View>
         )}
+
+        {/* Personal Info Section */}
+        <View style={styles.menuSection}>
+          <Text style={styles.menuSectionTitle}>Миний мэдээлэл</Text>
+          <View style={styles.menuCard}>
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={handlePersonalInfo}
+              activeOpacity={0.72}
+            >
+              <View style={[styles.menuRowIcon, { backgroundColor: '#EEEEFF' }]}>
+                <Ionicons name="person-outline" size={19} color="#5B5BD6" />
+              </View>
+              <View style={styles.menuRowContent}>
+                <Text style={styles.menuRowLabel}>Хувийн мэдээлэл</Text>
+                <Text style={styles.menuRowSubtext}>
+                  {user?.kycStatus === 'approved' ? 'Баталгаажсан' : 'Харах'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Menu Sections */}
         {MENU_SECTIONS.map((section) => (
@@ -197,7 +211,9 @@ const styles = StyleSheet.create({
   menuCard: { backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden', shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
   menuRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 },
   menuRowIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
-  menuRowLabel: { flex: 1, fontSize: 15, fontWeight: '500', color: '#0F0F1A' },
+  menuRowContent: { flex: 1 },
+  menuRowLabel: { fontSize: 15, fontWeight: '500', color: '#0F0F1A', marginBottom: 2 },
+  menuRowSubtext: { fontSize: 12, color: '#94A3B8' },
   menuDivider: { height: 1, backgroundColor: '#F1F5F9', marginLeft: 68 },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FEE2E2', borderRadius: 16, paddingVertical: 16, marginBottom: 10 },
   logoutText: { fontSize: 15, fontWeight: '700', color: '#EF4444' },
