@@ -107,14 +107,8 @@ export default function HomeScreen({ navigation }) {
       return;
     }
     
-    // Step 2: Check credit check payment
+    // Step 2: Check credit check payment - Navigate directly
     if (!user?.creditCheckPaid) {
-      Toast.show({ 
-        type: 'info', 
-        text1: 'Зээлийн эрх тогтоох', 
-        text2: 'Та эхлээд 3000₮ төлж зээлийн эрхээ тогтоох хэрэгтэй',
-        visibilityTime: 4000,
-      });
       navigation.navigate('CreditCheck');
       return;
     }

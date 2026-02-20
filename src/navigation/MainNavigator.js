@@ -1,6 +1,6 @@
 /**
- * Premium Main Navigator - FIXED
- * Emoji → Ionicons
+ * Premium Main Navigator - UPDATED
+ * Emoji → Ionicons + CreditCheck, PersonalInfoView screens
  */
 
 import React from 'react';
@@ -24,6 +24,7 @@ import ExtendLoanScreen from '../screens/loan/ExtendLoanScreen';
 // KYC Screens
 import KYCInfoScreen from '../screens/kyc/KYCInfoScreen';
 import KYCDocumentsScreen from '../screens/kyc/KYCDocumentsScreen';
+import CreditCheckScreen from '../screens/kyc/CreditCheckScreen';
 
 // Wallet Screens
 import DepositScreen from '../screens/wallet/DepositScreen';
@@ -31,6 +32,7 @@ import WithdrawScreen from '../screens/wallet/WithdrawScreen';
 
 // Profile Screens
 import TransactionHistoryScreen from '../screens/profile/TransactionHistoryScreen';
+import PersonalInfoViewScreen from '../screens/profile/PersonalInfoViewScreen';
 
 import { COLORS } from '../constants/colors';
 
@@ -132,6 +134,7 @@ const HomeStack = () => (
     <Stack.Screen name="ApplyLoan" component={ApplyLoanScreen} />
     <Stack.Screen name="KYCInfo" component={KYCInfoScreen} />
     <Stack.Screen name="KYCDocuments" component={KYCDocumentsScreen} />
+    <Stack.Screen name="CreditCheck" component={CreditCheckScreen} />
   </Stack.Navigator>
 );
 
@@ -173,6 +176,7 @@ const ProfileStack = () => (
   >
     <Stack.Screen name="ProfileMain" component={ProfileScreen} />
     <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} />
+    <Stack.Screen name="PersonalInfoView" component={PersonalInfoViewScreen} />
   </Stack.Navigator>
 );
 
