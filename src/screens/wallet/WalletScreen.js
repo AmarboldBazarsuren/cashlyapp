@@ -1,9 +1,10 @@
 /**
- * WalletScreen.js
- * src/screens/wallet/WalletScreen.js
+ * WalletScreen.js - ЗАСВАР
+ * БАЙРШИЛ: src/screens/wallet/WalletScreen.js
  *
- * ✅ @expo/vector-icons (Ionicons) — emoji байхгүй
- * ✅ Light theme
+ * ✅ getWallet()-аас recentTransactions авах
+ * ✅ pending/rejected withdrawal харуулах
+ * ✅ TransactionItem компонент ашиглах
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -14,21 +15,14 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../context/AppContext';
-import { getWallet, getTransactions } from '../../services/walletService';
+import { getWallet } from '../../services/walletService';
+import TransactionItem from '../../components/wallet/TransactionItem';
 import { COLORS } from '../../constants/colors';
 import { formatMoney } from '../../utils/formatters';
 
-const TX_ICON = {
-  deposit:    { icon: 'arrow-down-circle-outline', color: '#27AE60', bg: '#E8F8EE' },
-  withdrawal: { icon: 'arrow-up-circle-outline',   color: '#EF4444', bg: '#FEE2E2' },
-  loan:       { icon: 'cash-outline',              color: '#5B5BD6', bg: '#EEEEFF' },
-  repayment:  { icon: 'checkmark-circle-outline',  color: '#22C7BE', bg: '#E5FAFA' },
-  default:    { icon: 'swap-horizontal-outline',   color: '#64748B', bg: '#F1F5F9' },
-};
-
 export default function WalletScreen({ navigation }) {
   const { wallet, setWallet } = useApp();
-  const [transactions, setTransactions] = useState([]);
+  const [recentTransactions, setRecentTransactions] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [balanceVisible, setBalanceVisible] = useState(true);
 
@@ -36,10 +30,15 @@ export default function WalletScreen({ navigation }) {
 
   const load = async () => {
     try {
-      const [w, t] = await Promise.all([getWallet(), getTransactions({ limit: 20 })]);
-      if (w?.success) setWallet(w.data.wallet);
-      if (t?.success) setTransactions(t.data.transactions || []);
-    } catch (e) { console.log(e); }
+      const w = await getWallet();
+      if (w?.success) {
+        setWallet(w.data.wallet);
+        // ✅ Backend getWalletController нь recentTransactions буцаана
+        setRecentTransactions(w.data.recentTransactions || []);
+      }
+    } catch (e) {
+      console.log('WalletScreen load error:', e);
+    }
   };
 
   const onRefresh = useCallback(async () => {
@@ -47,8 +46,6 @@ export default function WalletScreen({ navigation }) {
     await load();
     setRefreshing(false);
   }, []);
-
-  const txStyle = (type) => TX_ICON[type] || TX_ICON.default;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -84,11 +81,12 @@ export default function WalletScreen({ navigation }) {
             {balanceVisible ? `${formatMoney(wallet?.balance || 0)}₮` : '••••••₮'}
           </Text>
 
-          <View style={styles.balanceMeta}>
-            <Text style={styles.balanceMetaText}>
-              Дансны дугаар: {wallet?.accountNumber || '—'}
+          {/* Frozen balance байвал харуулах */}
+          {wallet?.frozenBalance > 0 && (
+            <Text style={styles.frozenText}>
+              Хүлээгдэж буй: {formatMoney(wallet.frozenBalance)}₮
             </Text>
-          </View>
+          )}
 
           <View style={styles.balanceDivider} />
 
@@ -114,11 +112,14 @@ export default function WalletScreen({ navigation }) {
               <Text style={styles.actionBtnLabel}>Татах</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionBtn}>
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => navigation.navigate('TransactionHistory')}
+            >
               <View style={styles.actionBtnCircle}>
-                <Ionicons name="qr-code-outline" size={22} color="#5B5BD6" />
+                <Ionicons name="receipt-outline" size={22} color="#5B5BD6" />
               </View>
-              <Text style={styles.actionBtnLabel}>QR</Text>
+              <Text style={styles.actionBtnLabel}>Түүх</Text>
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -126,8 +127,8 @@ export default function WalletScreen({ navigation }) {
         {/* ── MINI STATS ──────────────────────── */}
         <View style={styles.miniStats}>
           {[
-            { icon: 'arrow-down-circle-outline', color: '#27AE60', bg: '#E8F8EE', label: 'Нийт орлого', val: `${formatMoney(wallet?.totalDeposit || 0)}₮` },
-            { icon: 'arrow-up-circle-outline',   color: '#EF4444', bg: '#FEE2E2', label: 'Нийт зарлага', val: `${formatMoney(wallet?.totalWithdrawal || 0)}₮` },
+            { icon: 'arrow-down-circle-outline', color: '#27AE60', bg: '#E8F8EE', label: 'Нийт орлого', val: `${formatMoney(wallet?.totalDeposited || 0)}₮` },
+            { icon: 'arrow-up-circle-outline', color: '#EF4444', bg: '#FEE2E2', label: 'Нийт зарлага', val: `${formatMoney(wallet?.totalWithdrawn || 0)}₮` },
           ].map((s) => (
             <View key={s.label} style={styles.miniStatItem}>
               <View style={[styles.miniStatIcon, { backgroundColor: s.bg }]}>
@@ -148,33 +149,15 @@ export default function WalletScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {transactions.length === 0 ? (
+          {recentTransactions.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="receipt-outline" size={36} color="#CBD5E1" />
               <Text style={styles.emptyText}>Гүйлгээ байхгүй байна</Text>
             </View>
           ) : (
-            transactions.slice(0, 8).map((tx, i, arr) => {
-              const s = txStyle(tx.type);
-              const isPlus = tx.type === 'deposit' || tx.type === 'loan';
-              return (
-                <React.Fragment key={tx._id}>
-                  <View style={styles.txRow}>
-                    <View style={[styles.txIcon, { backgroundColor: s.bg }]}>
-                      <Ionicons name={s.icon} size={18} color={s.color} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.txLabel}>{tx.description || 'Гүйлгээ'}</Text>
-                      <Text style={styles.txDate}>{new Date(tx.createdAt).toLocaleDateString('mn-MN')}</Text>
-                    </View>
-                    <Text style={[styles.txAmt, { color: isPlus ? '#27AE60' : '#EF4444' }]}>
-                      {isPlus ? '+' : '-'}{formatMoney(tx.amount)}₮
-                    </Text>
-                  </View>
-                  {i < arr.length - 1 && <View style={styles.txDivider} />}
-                </React.Fragment>
-              );
-            })
+            recentTransactions.map((tx) => (
+              <TransactionItem key={tx._id} transaction={tx} />
+            ))
           )}
         </View>
 
@@ -188,44 +171,27 @@ const styles = StyleSheet.create({
   safe:       { flex: 1, backgroundColor: '#F2F4F9' },
   scroll:     { paddingHorizontal: 18, paddingTop: 10 },
   pageTitle:  { fontSize: 26, fontWeight: '800', color: '#0F0F1A', letterSpacing: -0.5, marginBottom: 18 },
-
-  // Balance card
   balanceCard:    { borderRadius: 24, padding: 22, marginBottom: 16, overflow: 'hidden', shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.28, shadowRadius: 24, elevation: 10 },
   deco1:          { position: 'absolute', width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(255,255,255,0.1)', top: -30, right: -30 },
   deco2:          { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.07)', bottom: -40, left: -20 },
   balanceTop:     { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   balanceCaption: { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '500' },
-  balanceAmt:     { fontSize: 42, fontWeight: '900', color: '#fff', marginBottom: 6, letterSpacing: -1 },
-  balanceMeta:    { marginBottom: 18 },
-  balanceMetaText:{ fontSize: 12, color: 'rgba(255,255,255,0.65)' },
-  balanceDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.18)', marginBottom: 16 },
+  balanceAmt:     { fontSize: 42, fontWeight: '900', color: '#fff', marginBottom: 4, letterSpacing: -1 },
+  frozenText:     { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginBottom: 14 },
+  balanceDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.18)', marginBottom: 16, marginTop: 10 },
   balanceActions: { flexDirection: 'row', justifyContent: 'space-around' },
   actionBtn:      { alignItems: 'center', gap: 6 },
   actionBtnCircle:{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },
   actionBtnLabel: { fontSize: 12, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
-
-  // Mini stats
   miniStats:    { flexDirection: 'row', gap: 12, marginBottom: 16 },
   miniStatItem: { flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 16, shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2 },
   miniStatIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   miniStatLabel:{ fontSize: 11, color: '#94A3B8', fontWeight: '500', marginBottom: 4 },
   miniStatVal:  { fontSize: 15, fontWeight: '800' },
-
-  // Card
   card:       { backgroundColor: '#fff', borderRadius: 20, padding: 18, marginBottom: 16, shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 12, elevation: 3 },
   cardTitle:  { fontSize: 17, fontWeight: '700', color: '#0F0F1A' },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   seeAll:     { fontSize: 13, color: '#5B5BD6', fontWeight: '600' },
-
-  // Empty state
   emptyState: { alignItems: 'center', paddingVertical: 30, gap: 8 },
   emptyText:  { fontSize: 14, color: '#94A3B8' },
-
-  // Transactions
-  txRow:     { flexDirection: 'row', alignItems: 'center', paddingVertical: 11 },
-  txIcon:    { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  txLabel:   { fontSize: 14, fontWeight: '600', color: '#0F0F1A', marginBottom: 2 },
-  txDate:    { fontSize: 11, color: '#94A3B8' },
-  txAmt:     { fontSize: 15, fontWeight: '800' },
-  txDivider: { height: 1, backgroundColor: '#F1F5F9' },
 });

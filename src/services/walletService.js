@@ -1,6 +1,6 @@
 /**
  * Wallet Service - Хэтэвчний API
- * БАЙРШИЛ: Cashly.mn/App/src/services/walletService.js
+ * БАЙРШИЛ: src/services/walletService.js
  */
 
 import api from './api';
@@ -29,9 +29,7 @@ export const deposit = async (amount, paymentMethod, referenceNumber) => {
 
 export const requestWithdrawal = async (amount) => {
   try {
-    const response = await api.post('/wallet/request-withdrawal', {
-      amount,
-    });
+    const response = await api.post('/wallet/request-withdrawal', { amount });
     return response;
   } catch (error) {
     throw error;
@@ -47,10 +45,20 @@ export const getWithdrawalRequests = async () => {
   }
 };
 
+/**
+ * ✅ ЗАСВАР: page болон type зөв дамжуулах
+ * @param {number|object} page - хуудасны дугаар (default: 1)
+ * @param {string} type - шүүх төрөл (default: '')
+ */
 export const getTransactions = async (page = 1, type = '') => {
   try {
+    // Хэрэв page нь object байвал (хуучин дуудалт: getTransactions({ limit: 20 }))
+    // автоматаар 1 болгоно
+    const pageNum = typeof page === 'object' ? 1 : page;
+    const limit = typeof page === 'object' ? (page.limit || 20) : 20;
+
     const response = await api.get('/transaction/history', {
-      params: { page, type },
+      params: { page: pageNum, type, limit },
     });
     return response;
   } catch (error) {

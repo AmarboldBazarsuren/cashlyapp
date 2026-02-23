@@ -1,6 +1,11 @@
 /**
- * Transaction Item Component - Гүйлгээний элемент
- * БАЙРШИЛ: Cashly.mn/App/src/components/wallet/TransactionItem.js
+ * Transaction Item Component - ЗАСВАР
+ * БАЙРШИЛ: src/components/wallet/TransactionItem.js
+ *
+ * ✅ status-д тулгуурлан icon болон өнгийг өөрчлөх
+ * ✅ Татгалзсан (rejected) → улаан X icon
+ * ✅ Хянагдаж байна (pending) → шар цагийн icon
+ * ✅ Амжилттай → ногоон checkmark
  */
 
 import React from 'react';
@@ -11,78 +16,139 @@ import { COLORS } from '../../constants/colors';
 import { formatMoney, formatDate } from '../../utils/formatters';
 
 const TransactionItem = ({ transaction }) => {
-  const getTransactionConfig = () => {
+  // ── Төрлөөр үндсэн тохиргоо ──────────────────────────────
+  const getTypeConfig = () => {
     switch (transaction.type) {
       case 'deposit':
-        return {
-          icon: 'arrow-down-circle',
-          iconColor: COLORS.success,
-          label: 'Цэнэглэлт',
-          sign: '+',
-        };
+        return { icon: 'arrow-down-circle', label: transaction.typeLabel || 'Цэнэглэлт', sign: '+', baseColor: COLORS.success };
       case 'withdrawal':
-        return {
-          icon: 'arrow-up-circle',
-          iconColor: COLORS.danger,
-          label: 'Зарлага',
-          sign: '-',
-        };
+        return { icon: 'arrow-up-circle', label: transaction.typeLabel || 'Татах', sign: '-', baseColor: COLORS.danger };
       case 'loan_disbursement':
-        return {
-          icon: 'wallet',
-          iconColor: COLORS.primary,
-          label: 'Зээл олгох',
-          sign: '+',
-        };
+        return { icon: 'wallet', label: 'Зээл олгох', sign: '+', baseColor: COLORS.primary };
       case 'loan_payment':
-        return {
-          icon: 'cash',
-          iconColor: COLORS.info,
-          label: 'Зээл төлөх',
-          sign: '-',
-        };
+        return { icon: 'cash', label: 'Зээл төлөх', sign: '-', baseColor: COLORS.info };
       case 'credit_check_fee':
-        return {
-          icon: 'card',
-          iconColor: COLORS.warning,
-          label: 'Зээлийн эрх шалгах',
-          sign: '-',
-        };
+        return { icon: 'card', label: 'Зээлийн эрх шалгах', sign: '-', baseColor: COLORS.warning };
       case 'extension_fee':
+        return { icon: 'time', label: 'Сунгалтын төлбөр', sign: '-', baseColor: COLORS.primary };
+      default:
+        return { icon: 'swap-horizontal', label: transaction.typeLabel || transaction.type, sign: '', baseColor: COLORS.textTertiary };
+    }
+  };
+
+  // ── Статусаар icon болон өнгийг тодорхойлох ──────────────
+  const getStatusConfig = () => {
+    const status = transaction.status;
+
+    switch (status) {
+      case 'rejected':
+        return {
+          icon: 'close-circle',
+          iconColor: COLORS.danger,
+          bgColor: COLORS.danger + '20',
+          statusLabel: transaction.statusLabel || 'Татгалзсан',
+          statusColor: COLORS.danger,
+          statusEmoji: '✕',
+        };
+      case 'pending':
         return {
           icon: 'time',
-          iconColor: COLORS.primary,
-          label: 'Сунгалтын төлбөр',
-          sign: '-',
+          iconColor: COLORS.warning,
+          bgColor: COLORS.warning + '20',
+          statusLabel: transaction.statusLabel || 'Хянагдаж байна',
+          statusColor: COLORS.warning,
+          statusEmoji: '⏳',
+        };
+      case 'completed':
+      case 'paid':
+        return {
+          icon: null, // type-ийн icon ашиглана
+          iconColor: null,
+          bgColor: null,
+          statusLabel: transaction.statusLabel || 'Амжилттай',
+          statusColor: COLORS.success,
+          statusEmoji: '✓',
+        };
+      case 'approved':
+        return {
+          icon: 'checkmark-circle',
+          iconColor: COLORS.success,
+          bgColor: COLORS.success + '20',
+          statusLabel: transaction.statusLabel || 'Зөвшөөрсөн',
+          statusColor: COLORS.success,
+          statusEmoji: '✓',
+        };
+      case 'expired':
+        return {
+          icon: 'alert-circle',
+          iconColor: COLORS.textTertiary,
+          bgColor: COLORS.textTertiary + '20',
+          statusLabel: 'Хугацаа дууссан',
+          statusColor: COLORS.textTertiary,
+          statusEmoji: '—',
         };
       default:
         return {
-          icon: 'swap-horizontal',
-          iconColor: COLORS.gray,
-          label: transaction.type,
-          sign: '',
+          icon: null,
+          iconColor: null,
+          bgColor: null,
+          statusLabel: status,
+          statusColor: COLORS.textTertiary,
+          statusEmoji: '',
         };
     }
   };
 
-  const { icon, iconColor, label, sign } = getTransactionConfig();
+  const typeConfig = getTypeConfig();
+  const statusConfig = getStatusConfig();
+
+  // Status-д тулгуурлан icon болон өнгийг шийдэх
+  const finalIcon = statusConfig.icon || typeConfig.icon;
+  const finalIconColor = statusConfig.iconColor || typeConfig.baseColor;
+  const finalBgColor = statusConfig.bgColor || (typeConfig.baseColor + '20');
+
+  // Rejected бол дүнг саарал болгоно
+  const amountColor = transaction.status === 'rejected' || transaction.status === 'expired'
+    ? COLORS.textTertiary
+    : (typeConfig.sign === '+' ? COLORS.success : COLORS.danger);
+
+  const amountStyle = transaction.status === 'rejected' || transaction.status === 'expired'
+    ? { textDecorationLine: 'line-through', color: COLORS.textTertiary }
+    : { color: amountColor };
 
   return (
     <Card style={styles.card}>
       <View style={styles.content}>
-        <View style={[styles.iconContainer, { backgroundColor: iconColor + '20' }]}>
-          <Icon name={icon} size={24} color={iconColor} />
+        {/* Icon */}
+        <View style={[styles.iconContainer, { backgroundColor: finalBgColor }]}>
+          <Icon name={finalIcon} size={24} color={finalIconColor} />
         </View>
+
+        {/* Дэлгэрэнгүй */}
         <View style={styles.details}>
-          <Text style={styles.label}>{label}</Text>
-          <Text style={styles.description}>{transaction.description}</Text>
+          <Text style={styles.label}>{typeConfig.label}</Text>
+          {transaction.description ? (
+            <Text style={styles.description} numberOfLines={1}>{transaction.description}</Text>
+          ) : null}
+          {/* Татгалзсан шалтгаан */}
+          {transaction.status === 'rejected' && transaction.rejectedReason ? (
+            <Text style={styles.rejectedReason} numberOfLines={2}>
+              ✕ {transaction.rejectedReason}
+            </Text>
+          ) : null}
           <Text style={styles.date}>{formatDate(transaction.createdAt)}</Text>
         </View>
+
+        {/* Дүн болон статус */}
         <View style={styles.amountContainer}>
-          <Text style={[styles.amount, { color: sign === '+' ? COLORS.success : COLORS.danger }]}>
-            {sign}{formatMoney(transaction.amount)}₮
+          <Text style={[styles.amount, amountStyle]}>
+            {typeConfig.sign}{formatMoney(transaction.amount)}₮
           </Text>
-          <Text style={styles.status}>{transaction.status === 'completed' ? '✓' : '⏳'}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusConfig.statusColor + '18' }]}>
+            <Text style={[styles.statusText, { color: statusConfig.statusColor }]}>
+              {statusConfig.statusLabel}
+            </Text>
+          </View>
         </View>
       </View>
     </Card>
@@ -120,20 +186,33 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: 2,
   },
+  rejectedReason: {
+    fontSize: 11,
+    color: COLORS.danger,
+    marginBottom: 2,
+    lineHeight: 15,
+  },
   date: {
     fontSize: 11,
-    color: COLORS.textLight,
+    color: COLORS.textTertiary,
   },
   amountContainer: {
     alignItems: 'flex-end',
+    gap: 4,
   },
   amount: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     marginBottom: 2,
   },
-  status: {
-    fontSize: 12,
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
 });
 
