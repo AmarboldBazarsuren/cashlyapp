@@ -1,9 +1,11 @@
 /**
- * HomeScreen.js - UPDATED with Credit Check Flow
+ * HomeScreen.js - ALL ISSUES FIXED
  * src/screens/home/HomeScreen.js
  *
- * ✅ Credit Check workflow нэмсэн
- * ✅ Light theme
+ * ✅ Active loans показывается правильно
+ * ✅ Credit check flow исправлен
+ * ✅ Lock icon для недоступных типов займов
+ * ✅ Убран лимит 3 займа в день
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -53,21 +55,39 @@ const StatPill = ({ icon, iconColor, bg, label, value }) => (
   </View>
 );
 
-const LoanRow = ({ item, onPress }) => (
-  <TouchableOpacity style={styles.loanRow} onPress={() => onPress(item)} activeOpacity={0.75}>
+const LoanRow = ({ item, onPress, isLocked }) => (
+  <TouchableOpacity 
+    style={[styles.loanRow, isLocked && styles.loanRowLocked]} 
+    onPress={() => onPress(item)} 
+    activeOpacity={0.75}
+    disabled={isLocked && !item.available}
+  >
     <View style={[styles.loanRowIcon, { backgroundColor: item.bg }]}>
       <Ionicons name={item.icon} size={22} color={item.color} />
+      {isLocked && (
+        <View style={styles.lockBadge}>
+          <Ionicons name="lock-closed" size={12} color="#fff" />
+        </View>
+      )}
     </View>
     <View style={styles.loanRowMid}>
       <Text style={styles.loanRowLabel}>{item.label}</Text>
       <Text style={styles.loanRowSub}>{item.sub}</Text>
     </View>
-    {item.available
-      ? <Ionicons name="chevron-forward" size={18} color={COLORS.textTertiary} />
-      : <View style={[styles.comingTag, { backgroundColor: item.bg }]}>
-          <Text style={[styles.comingTagText, { color: item.color }]}>Удахгүй</Text>
-        </View>
-    }
+    {!isLocked && item.available && (
+      <Ionicons name="chevron-forward" size={18} color={COLORS.textTertiary} />
+    )}
+    {!isLocked && !item.available && (
+      <View style={[styles.comingTag, { backgroundColor: item.bg }]}>
+        <Text style={[styles.comingTagText, { color: item.color }]}>Удахгүй</Text>
+      </View>
+    )}
+    {isLocked && (
+      <View style={styles.lockedTag}>
+        <Ionicons name="lock-closed" size={14} color="#666" />
+        <Text style={styles.lockedTagText}>Түгжээтэй</Text>
+      </View>
+    )}
   </TouchableOpacity>
 );
 
@@ -107,7 +127,7 @@ export default function HomeScreen({ navigation }) {
       return;
     }
     
-    // Step 2: Check credit check payment - Navigate directly
+    // Step 2: Check credit check payment
     if (!user?.creditCheckPaid) {
       navigation.navigate('CreditCheck');
       return;
@@ -117,7 +137,7 @@ export default function HomeScreen({ navigation }) {
     if (user?.creditLimit === 0 || !user?.creditLimit) {
       Toast.show({ 
         type: 'info', 
-        text1: 'Зээлийн эрх тогтоогдож байна', 
+        text1: 'Зээлийн эрх шалгагдаж байна', 
         text2: '24-48 цагийн дотор таны зээлийн эрх тогтоогдоно',
         visibilityTime: 4000,
       });
@@ -127,6 +147,9 @@ export default function HomeScreen({ navigation }) {
     // Step 4: Ready to apply
     navigation.navigate('ApplyLoan');
   };
+
+  // Determine if loans are locked
+  const isLoansLocked = user?.kycStatus !== 'approved' || !user?.creditCheckPaid || user?.creditLimit === 0;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -197,12 +220,12 @@ export default function HomeScreen({ navigation }) {
         {(user?.creditLimit > 0 || user?.creditScore > 0) && (
           <View style={styles.statsRow}>
             <StatPill
-              icon="shield-checkmark-outline" iconColor={COLORS.primary} bg={COLORS.primarySoft}
+              icon="shield-checkmark-outline" iconColor={COLORS.primary} bg="#EEEEFF"
               label="Зээлийн эрх" value={`${formatMoney(user?.creditLimit || 0)}₮`}
             />
             <View style={styles.statsDivider} />
             <StatPill
-              icon="trending-up-outline" iconColor={COLORS.secondary} bg={COLORS.secondarySoft}
+              icon="trending-up-outline" iconColor="#22C7BE" bg="#E5FAFA"
               label="Credit score" value={user?.creditScore || '—'}
             />
           </View>
@@ -228,7 +251,7 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
-        {/* CREDIT CHECK BANNER - Show if KYC approved but credit check not paid */}
+        {/* CREDIT CHECK BANNER */}
         {user?.kycStatus === 'approved' && !user?.creditCheckPaid && (
           <TouchableOpacity
             style={[styles.kycBanner, { backgroundColor: '#FEF9C3', borderColor: '#EAB308' }]}
@@ -237,10 +260,10 @@ export default function HomeScreen({ navigation }) {
           >
             <View style={styles.kycBannerLeft}>
               <View style={[styles.kycBannerIconWrap, { backgroundColor: '#fff' }]}>
-                <Ionicons name="shield-checkmark-outline" size={20} color="#EAB308" />
+                <Ionicons name="card-outline" size={20} color="#EAB308" />
               </View>
               <View>
-                <Text style={styles.kycBannerTitle}>Зээлийн эрх тогтоох</Text>
+                <Text style={styles.kycBannerTitle}>Зээлийн эрх шалгах</Text>
                 <Text style={styles.kycBannerSub}>3000₮ төлж зээлийн эрхээ тогтоох</Text>
               </View>
             </View>
@@ -248,12 +271,27 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
+        {/* CREDIT CHECK PROCESSING BANNER */}
+        {user?.kycStatus === 'approved' && user?.creditCheckPaid && user?.creditLimit === 0 && (
+          <View style={[styles.kycBanner, { backgroundColor: '#DBEAFE', borderColor: '#3B82F6' }]}>
+            <View style={styles.kycBannerLeft}>
+              <View style={[styles.kycBannerIconWrap, { backgroundColor: '#fff' }]}>
+                <Ionicons name="time-outline" size={20} color="#3B82F6" />
+              </View>
+              <View>
+                <Text style={styles.kycBannerTitle}>Зээлийн эрх шалгагдаж байна</Text>
+                <Text style={styles.kycBannerSub}>24-48 цагийн дотор тогтоогдоно</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* LOAN TYPES */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Зээлийн төрлүүд</Text>
           {LOAN_TYPES.map((item, i) => (
             <React.Fragment key={item.id}>
-              <LoanRow item={item} onPress={handleLoan} />
+              <LoanRow item={item} onPress={handleLoan} isLocked={isLoansLocked} />
               {i < LOAN_TYPES.length - 1 && <View style={styles.rowDivider} />}
             </React.Fragment>
           ))}
@@ -268,7 +306,7 @@ export default function HomeScreen({ navigation }) {
                 <Text style={styles.seeAll}>Бүгд харах</Text>
               </TouchableOpacity>
             </View>
-            {activeLoans.slice(0, 2).map((loan, i, arr) => (
+            {activeLoans.slice(0, 2).map((loan, i) => (
               <TouchableOpacity
                 key={loan._id}
                 style={[styles.loanItem, i < Math.min(activeLoans.length, 2) - 1 && styles.loanItemBorder]}
@@ -333,12 +371,16 @@ const styles = StyleSheet.create({
   seeAll: { fontSize: 13, color: '#5B5BD6', fontWeight: '600' },
   rowDivider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 2 },
   loanRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11 },
-  loanRowIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+  loanRowLocked: { opacity: 0.6 },
+  loanRowIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 14, position: 'relative' },
+  lockBadge: { position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: 9, backgroundColor: '#666', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
   loanRowMid: { flex: 1 },
   loanRowLabel: { fontSize: 15, fontWeight: '600', color: '#0F0F1A', marginBottom: 2 },
   loanRowSub: { fontSize: 12, color: '#94A3B8' },
   comingTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   comingTagText: { fontSize: 11, fontWeight: '700' },
+  lockedTag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: '#F1F5F9' },
+  lockedTagText: { fontSize: 11, fontWeight: '700', color: '#666' },
   loanItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
   loanItemBorder: { borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
   loanItemIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#EEEEFF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },

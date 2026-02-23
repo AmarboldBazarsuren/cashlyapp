@@ -1,10 +1,9 @@
 /**
- * WalletScreen.js - ЗАСВАР
+ * WalletScreen.js - NAVIGATION FIXED
  * БАЙРШИЛ: src/screens/wallet/WalletScreen.js
  *
- * ✅ getWallet()-аас recentTransactions авах
- * ✅ pending/rejected withdrawal харуулах
- * ✅ TransactionItem компонент ашиглах
+ * ✅ Navigation буцах асуудал шийдэгдсэн
+ * ✅ Deposit/Withdraw-с буцаад wallet харагдана
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -14,6 +13,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useApp } from '../../context/AppContext';
 import { getWallet } from '../../services/walletService';
 import TransactionItem from '../../components/wallet/TransactionItem';
@@ -25,19 +25,28 @@ export default function WalletScreen({ navigation }) {
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [balanceVisible, setBalanceVisible] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { load(); }, []);
+  // ✅ useFocusEffect - экран focus авах бүрт дуудагдана
+  useFocusEffect(
+    useCallback(() => {
+      load();
+      return () => {}; // cleanup function
+    }, [])
+  );
 
   const load = async () => {
     try {
+      setLoading(true);
       const w = await getWallet();
       if (w?.success) {
         setWallet(w.data.wallet);
-        // ✅ Backend getWalletController нь recentTransactions буцаана
         setRecentTransactions(w.data.recentTransactions || []);
       }
     } catch (e) {
       console.log('WalletScreen load error:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -81,7 +90,6 @@ export default function WalletScreen({ navigation }) {
             {balanceVisible ? `${formatMoney(wallet?.balance || 0)}₮` : '••••••₮'}
           </Text>
 
-          {/* Frozen balance байвал харуулах */}
           {wallet?.frozenBalance > 0 && (
             <Text style={styles.frozenText}>
               Хүлээгдэж буй: {formatMoney(wallet.frozenBalance)}₮
@@ -90,7 +98,6 @@ export default function WalletScreen({ navigation }) {
 
           <View style={styles.balanceDivider} />
 
-          {/* Actions */}
           <View style={styles.balanceActions}>
             <TouchableOpacity
               style={styles.actionBtn}
@@ -114,7 +121,7 @@ export default function WalletScreen({ navigation }) {
 
             <TouchableOpacity
               style={styles.actionBtn}
-              onPress={() => navigation.navigate('TransactionHistory')}
+              onPress={() => navigation.navigate('Profile', { screen: 'TransactionHistory' })}
             >
               <View style={styles.actionBtnCircle}>
                 <Ionicons name="receipt-outline" size={22} color="#5B5BD6" />
@@ -144,12 +151,17 @@ export default function WalletScreen({ navigation }) {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>Сүүлийн гүйлгээ</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('TransactionHistory')}>
+            <TouchableOpacity onPress={() => navigation.navigate('Profile', { screen: 'TransactionHistory' })}>
               <Text style={styles.seeAll}>Бүгд</Text>
             </TouchableOpacity>
           </View>
 
-          {recentTransactions.length === 0 ? (
+          {loading && recentTransactions.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="hourglass-outline" size={36} color="#CBD5E1" />
+              <Text style={styles.emptyText}>Ачааллаж байна...</Text>
+            </View>
+          ) : recentTransactions.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="receipt-outline" size={36} color="#CBD5E1" />
               <Text style={styles.emptyText}>Гүйлгээ байхгүй байна</Text>
