@@ -1,11 +1,8 @@
 /**
- * HomeScreen.js - ALL ISSUES FIXED
- * src/screens/home/HomeScreen.js
- *
- * ✅ Active loans показывается правильно
- * ✅ Credit check flow исправлен
- * ✅ Lock icon для недоступных типов займов
- * ✅ Убран лимит 3 займа в день
+ * HomeScreen.js - COMPLETE WITH CREDIT LIMIT SECTION
+ * ✅ Зээлийн эрх хэсэг нэмсэн (design + lock логик)
+ * ✅ Available credit limit харуулах
+ * ✅ KYC + Credit check flow бүрэн
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -75,7 +72,7 @@ const LoanRow = ({ item, onPress, isLocked }) => (
       <Text style={styles.loanRowSub}>{item.sub}</Text>
     </View>
     {!isLocked && item.available && (
-      <Ionicons name="chevron-forward" size={18} color={COLORS.textTertiary} />
+      <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
     )}
     {!isLocked && !item.available && (
       <View style={[styles.comingTag, { backgroundColor: item.bg }]}>
@@ -148,8 +145,30 @@ export default function HomeScreen({ navigation }) {
     navigation.navigate('ApplyLoan');
   };
 
+  // Calculate available credit limit
+  const usedCreditLimit = user?.usedCreditLimit || 0;
+  const totalCreditLimit = user?.creditLimit || 0;
+  const availableCreditLimit = totalCreditLimit - usedCreditLimit;
+
   // Determine if loans are locked
-  const isLoansLocked = user?.kycStatus !== 'approved' || !user?.creditCheckPaid || user?.creditLimit === 0;
+  const isLoansLocked = user?.kycStatus !== 'approved' || !user?.creditCheckPaid || totalCreditLimit === 0;
+
+  // ✅ 14 хоногийн cooldown шалгах
+  const canPayCreditCheck = () => {
+    if (!user?.creditCheckAttemptAt) return true;
+    const daysSinceAttempt = Math.floor(
+      (Date.now() - new Date(user.creditCheckAttemptAt).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return daysSinceAttempt >= 14;
+  };
+
+  const daysUntilNextAttempt = () => {
+    if (!user?.creditCheckAttemptAt) return 0;
+    const daysSince = Math.floor(
+      (Date.now() - new Date(user.creditCheckAttemptAt).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return Math.max(0, 14 - daysSince);
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -170,7 +189,7 @@ export default function HomeScreen({ navigation }) {
             </View>
           </View>
           <TouchableOpacity style={styles.notifBtn} onPress={() => {}}>
-            <Ionicons name="notifications-outline" size={22} color={COLORS.textPrimary} />
+            <Ionicons name="notifications-outline" size={22} color="#0F0F1A" />
             <View style={styles.notifBadge} />
           </TouchableOpacity>
         </View>
@@ -208,7 +227,7 @@ export default function HomeScreen({ navigation }) {
             ].map((a) => (
               <TouchableOpacity key={a.label} style={styles.walletAction} onPress={a.nav}>
                 <View style={styles.walletActionCircle}>
-                  <Ionicons name={a.icon} size={20} color={COLORS.primary} />
+                  <Ionicons name={a.icon} size={20} color="#5B5BD6" />
                 </View>
                 <Text style={styles.walletActionLabel}>{a.label}</Text>
               </TouchableOpacity>
@@ -216,17 +235,75 @@ export default function HomeScreen({ navigation }) {
           </View>
         </LinearGradient>
 
+        {/* ✅ ЗЭЭЛИЙН ЭРХ CARD - ШИНЭ ХЭСЭГ */}
+        <LinearGradient
+          colors={isLoansLocked ? ['#E2E8F0', '#F1F5F9'] : ['#7C3AED', '#EC4899']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={styles.creditLimitCard}
+        >
+          <View style={styles.creditDecoA} />
+          <View style={styles.creditDecoB} />
+
+          <View style={styles.creditTopRow}>
+            <View style={styles.creditIconWrap}>
+              {isLoansLocked ? (
+                <Ionicons name="lock-closed" size={28} color="#94A3B8" />
+              ) : (
+                <Ionicons name="shield-checkmark" size={28} color="#fff" />
+              )}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.creditCaption, isLoansLocked && { color: '#64748B' }]}>
+                Зээлийн эрх
+              </Text>
+              {isLoansLocked ? (
+                <Text style={styles.creditLockedText}>
+                  {user?.kycStatus !== 'approved' 
+                    ? 'KYC баталгаажуулна уу'
+                    : !user?.creditCheckPaid
+                    ? '3000₮ төлж эрх шалгуулна уу'
+                    : 'Шалгагдаж байна...'}
+                </Text>
+              ) : (
+                <>
+                  <Text style={styles.creditAmount}>
+                    {formatMoney(availableCreditLimit)}₮
+                  </Text>
+                  <Text style={styles.creditSubtext}>
+                    Нийт: {formatMoney(totalCreditLimit)}₮
+                    {usedCreditLimit > 0 && ` · Ашигласан: ${formatMoney(usedCreditLimit)}₮`}
+                  </Text>
+                </>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.creditDivider} />
+
+          <TouchableOpacity
+            style={[styles.creditButton, isLoansLocked && styles.creditButtonLocked]}
+            onPress={() => handleLoan(LOAN_TYPES[0])}
+            activeOpacity={0.8}
+          >
+            {isLoansLocked && <Ionicons name="lock-closed" size={16} color="#64748B" style={{ marginRight: 6 }} />}
+            <Text style={[styles.creditButtonText, isLoansLocked && { color: '#64748B' }]}>
+              {isLoansLocked ? 'Түгжээтэй' : 'Зээл авах'}
+            </Text>
+            {!isLoansLocked && <Ionicons name="arrow-forward" size={16} color="#fff" style={{ marginLeft: 6 }} />}
+          </TouchableOpacity>
+        </LinearGradient>
+
         {/* STATS */}
-        {(user?.creditLimit > 0 || user?.creditScore > 0) && (
+        {totalCreditLimit > 0 && (
           <View style={styles.statsRow}>
-            <StatPill
-              icon="shield-checkmark-outline" iconColor={COLORS.primary} bg="#EEEEFF"
-              label="Зээлийн эрх" value={`${formatMoney(user?.creditLimit || 0)}₮`}
-            />
-            <View style={styles.statsDivider} />
             <StatPill
               icon="trending-up-outline" iconColor="#22C7BE" bg="#E5FAFA"
               label="Credit score" value={user?.creditScore || '—'}
+            />
+            <View style={styles.statsDivider} />
+            <StatPill
+              icon="time-outline" iconColor="#F59E0B" bg="#FEF9C3"
+              label="Идэвхтэй зээл" value={activeLoans?.length || 0}
             />
           </View>
         )}
@@ -240,39 +317,46 @@ export default function HomeScreen({ navigation }) {
           >
             <View style={styles.kycBannerLeft}>
               <View style={styles.kycBannerIconWrap}>
-                <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.primary} />
+                <Ionicons name="shield-checkmark-outline" size={20} color="#5B5BD6" />
               </View>
               <View>
                 <Text style={styles.kycBannerTitle}>Хувийн мэдээлэл баталгаажуулах</Text>
                 <Text style={styles.kycBannerSub}>Зээл авахын тулд шаардлагатай</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+            <Ionicons name="chevron-forward" size={16} color="#5B5BD6" />
           </TouchableOpacity>
         )}
 
         {/* CREDIT CHECK BANNER */}
         {user?.kycStatus === 'approved' && !user?.creditCheckPaid && (
           <TouchableOpacity
-            style={[styles.kycBanner, { backgroundColor: '#FEF9C3', borderColor: '#EAB308' }]}
-            onPress={() => navigation.navigate('CreditCheck')}
-            activeOpacity={0.82}
+            style={[styles.kycBanner, { backgroundColor: canPayCreditCheck() ? '#FEF9C3' : '#FEE2E2', borderColor: canPayCreditCheck() ? '#EAB308' : '#EF4444' }]}
+            onPress={canPayCreditCheck() ? () => navigation.navigate('CreditCheck') : null}
+            activeOpacity={canPayCreditCheck() ? 0.82 : 1}
+            disabled={!canPayCreditCheck()}
           >
             <View style={styles.kycBannerLeft}>
               <View style={[styles.kycBannerIconWrap, { backgroundColor: '#fff' }]}>
-                <Ionicons name="card-outline" size={20} color="#EAB308" />
+                <Ionicons name={canPayCreditCheck() ? "card-outline" : "time-outline"} size={20} color={canPayCreditCheck() ? "#EAB308" : "#EF4444"} />
               </View>
               <View>
-                <Text style={styles.kycBannerTitle}>Зээлийн эрх шалгах</Text>
-                <Text style={styles.kycBannerSub}>3000₮ төлж зээлийн эрхээ тогтоох</Text>
+                <Text style={styles.kycBannerTitle}>
+                  {canPayCreditCheck() ? 'Зээлийн эрх шалгах' : 'Хүлээнэ үү'}
+                </Text>
+                <Text style={styles.kycBannerSub}>
+                  {canPayCreditCheck() 
+                    ? '3000₮ төлж зээлийн эрхээ тогтоох'
+                    : `${daysUntilNextAttempt()} хоногийн дараа дахин шалгуулна уу`}
+                </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#EAB308" />
+            {canPayCreditCheck() && <Ionicons name="chevron-forward" size={16} color="#EAB308" />}
           </TouchableOpacity>
         )}
 
         {/* CREDIT CHECK PROCESSING BANNER */}
-        {user?.kycStatus === 'approved' && user?.creditCheckPaid && user?.creditLimit === 0 && (
+        {user?.kycStatus === 'approved' && user?.creditCheckPaid && totalCreditLimit === 0 && (
           <View style={[styles.kycBanner, { backgroundColor: '#DBEAFE', borderColor: '#3B82F6' }]}>
             <View style={styles.kycBannerLeft}>
               <View style={[styles.kycBannerIconWrap, { backgroundColor: '#fff' }]}>
@@ -314,7 +398,7 @@ export default function HomeScreen({ navigation }) {
                 activeOpacity={0.75}
               >
                 <View style={styles.loanItemIcon}>
-                  <Ionicons name="cash-outline" size={18} color={COLORS.primary} />
+                  <Ionicons name="cash-outline" size={18} color="#5B5BD6" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.loanItemNum}>{loan.loanNumber}</Text>
@@ -343,6 +427,8 @@ const styles = StyleSheet.create({
   nameText: { fontSize: 24, fontWeight: '800', color: '#0F0F1A', letterSpacing: -0.3 },
   notifBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
   notifBadge: { position: 'absolute', top: 9, right: 9, width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444', borderWidth: 1.5, borderColor: '#fff' },
+  
+  // Wallet Card
   walletCard: { borderRadius: 24, padding: 22, marginBottom: 16, overflow: 'hidden', shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.28, shadowRadius: 24, elevation: 10 },
   decoA: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)', top: -30, right: -30 },
   decoB: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)', bottom: -60, left: -40 },
@@ -354,22 +440,41 @@ const styles = StyleSheet.create({
   walletAction: { alignItems: 'center', gap: 6 },
   walletActionCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },
   walletActionLabel: { fontSize: 12, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
+  
+  // ✅ ЗЭЭЛИЙН ЭРХ CARD - ШИНЭ STYLES
+  creditLimitCard: { borderRadius: 24, padding: 20, marginBottom: 16, overflow: 'hidden', shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.24, shadowRadius: 20, elevation: 8 },
+  creditDecoA: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.12)', top: -20, right: -20 },
+  creditDecoB: { position: 'absolute', width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.08)', bottom: -50, left: -30 },
+  creditTopRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 12 },
+  creditIconWrap: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
+  creditCaption: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600', marginBottom: 4 },
+  creditAmount: { fontSize: 32, fontWeight: '900', color: '#fff', letterSpacing: -0.8, marginBottom: 2 },
+  creditSubtext: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
+  creditLockedText: { fontSize: 14, color: '#94A3B8', fontWeight: '600', marginTop: 4 },
+  creditDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginBottom: 16 },
+  creditButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 14, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  creditButtonLocked: { backgroundColor: '#fff', borderColor: '#E2E8F0' },
+  creditButtonText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  
   statsRow: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 18, padding: 16, marginBottom: 16, shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.07, shadowRadius: 10, elevation: 2 },
   statPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   statPillIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   statPillLabel: { fontSize: 11, color: '#64748B', fontWeight: '500', marginBottom: 2 },
   statPillValue: { fontSize: 15, fontWeight: '800', color: '#0F0F1A' },
   statsDivider: { width: 1, backgroundColor: '#E2E8F0', marginHorizontal: 4 },
+  
   kycBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#EEEEFF', borderRadius: 16, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#D4D4F8' },
   kycBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   kycBannerIconWrap: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   kycBannerTitle: { fontSize: 13, fontWeight: '700', color: '#0F0F1A', marginBottom: 1 },
   kycBannerSub: { fontSize: 11, color: '#5B5BD6' },
+  
   card: { backgroundColor: '#fff', borderRadius: 20, padding: 18, marginBottom: 16, shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 12, elevation: 3 },
   cardTitle: { fontSize: 17, fontWeight: '700', color: '#0F0F1A', marginBottom: 14 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   seeAll: { fontSize: 13, color: '#5B5BD6', fontWeight: '600' },
   rowDivider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 2 },
+  
   loanRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11 },
   loanRowLocked: { opacity: 0.6 },
   loanRowIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 14, position: 'relative' },
@@ -381,6 +486,7 @@ const styles = StyleSheet.create({
   comingTagText: { fontSize: 11, fontWeight: '700' },
   lockedTag: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: '#F1F5F9' },
   lockedTagText: { fontSize: 11, fontWeight: '700', color: '#666' },
+  
   loanItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
   loanItemBorder: { borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
   loanItemIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#EEEEFF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
