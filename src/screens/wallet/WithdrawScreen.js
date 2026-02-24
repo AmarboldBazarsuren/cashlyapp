@@ -18,6 +18,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Toast from 'react-native-toast-message';
+import { CommonActions } from '@react-navigation/native';
 import { requestWithdrawal } from '../../services/walletService';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
@@ -78,7 +79,16 @@ const WithdrawScreen = ({ navigation }) => {
           text2: response.message,
         });
         setWallet(response.data.wallet);
-        navigation.goBack();
+        
+        // ✅ Хэтэвч хуудас руу буцах - stack-ийг reset хийнэ
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              { name: 'WalletMain' }
+            ],
+          })
+        );
       }
     } catch (error) {
       Toast.show({
@@ -89,6 +99,18 @@ const WithdrawScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ✅ Back товч дарахад хэтэвч хуудас руу буцах
+  const handleBack = () => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [
+          { name: 'WalletMain' }
+        ],
+      })
+    );
   };
 
   return (
@@ -107,7 +129,7 @@ const WithdrawScreen = ({ navigation }) => {
         >
           <TouchableOpacity 
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={handleBack}
           >
             <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
           </TouchableOpacity>

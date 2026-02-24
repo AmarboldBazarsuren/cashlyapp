@@ -3,6 +3,7 @@
  * ✅ Зээлийн эрх хэсэг нэмсэн (design + lock логик)
  * ✅ Available credit limit харуулах
  * ✅ KYC + Credit check flow бүрэн
+ * ✅ FIXED: usedCreditLimit ашиглаж зөв тооцоолох
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -145,10 +146,10 @@ export default function HomeScreen({ navigation }) {
     navigation.navigate('ApplyLoan');
   };
 
-  // Calculate available credit limit
-  const usedCreditLimit = user?.usedCreditLimit || 0;
+  // ✅ FIXED: usedCreditLimit ашиглаж зөв тооцоолох
   const totalCreditLimit = user?.creditLimit || 0;
-  const availableCreditLimit = totalCreditLimit - usedCreditLimit;
+  const usedCreditLimit = user?.usedCreditLimit || 0;
+  const availableCreditLimit = Math.max(0, totalCreditLimit - usedCreditLimit);
 
   // Determine if loans are locked
   const isLoansLocked = user?.kycStatus !== 'approved' || !user?.creditCheckPaid || totalCreditLimit === 0;
@@ -169,6 +170,15 @@ export default function HomeScreen({ navigation }) {
     );
     return Math.max(0, 14 - daysSince);
   };
+
+  // ✅ DEBUG: Console-д хэвлэж харах (тест хийхдээ)
+  useEffect(() => {
+    console.log('=== HOME SCREEN CREDIT INFO ===');
+    console.log('Total Credit Limit:', totalCreditLimit);
+    console.log('Used Credit Limit:', usedCreditLimit);
+    console.log('Available Credit Limit:', availableCreditLimit);
+    console.log('===============================');
+  }, [totalCreditLimit, usedCreditLimit, availableCreditLimit]);
 
   return (
     <SafeAreaView style={styles.safe}>
