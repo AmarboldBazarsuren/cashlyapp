@@ -1,11 +1,12 @@
 /**
  * Premium Loan Card Component
+ * ✅ ЗАСВАР: react-native-vector-icons → @expo/vector-icons
  */
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import Card from '../common/Card';
 import { COLORS } from '../../constants/colors';
 import { formatMoney, formatDate } from '../../utils/formatters';
@@ -50,10 +51,10 @@ const LoanCard = ({ loan, onPress }) => {
               colors={[statusColor, statusColor + 'AA']}
               style={styles.statusIcon}
             >
-              <Icon 
-                name={isActive ? "flash" : loan.status === 'completed' ? "checkmark" : "time"} 
-                size={16} 
-                color={COLORS.white} 
+              <Ionicons
+                name={isActive ? 'flash' : loan.status === 'completed' ? 'checkmark' : 'time'}
+                size={16}
+                color={COLORS.white}
               />
             </LinearGradient>
             <View>
@@ -61,7 +62,7 @@ const LoanCard = ({ loan, onPress }) => {
               <Text style={styles.date}>{formatDate(loan.createdAt)}</Text>
             </View>
           </View>
-          
+
           <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
             <Text style={[styles.statusText, { color: statusColor }]}>
               {getStatusText()}
@@ -75,7 +76,7 @@ const LoanCard = ({ loan, onPress }) => {
             <Text style={styles.label}>Зээлийн дүн</Text>
             <Text style={styles.amount}>{formatMoney(loan.principal)}₮</Text>
           </View>
-          
+
           {isActive && (
             <View style={styles.amountRow}>
               <Text style={styles.label}>Үлдэгдэл</Text>
@@ -87,7 +88,7 @@ const LoanCard = ({ loan, onPress }) => {
         </View>
 
         {/* Progress Bar */}
-        {isActive && (
+        {isActive && loan.totalAmount > 0 && (
           <View style={styles.progressSection}>
             <View style={styles.progressBar}>
               <LinearGradient
@@ -96,7 +97,7 @@ const LoanCard = ({ loan, onPress }) => {
                 end={{ x: 1, y: 0 }}
                 style={[
                   styles.progressFill,
-                  { width: `${(loan.paidAmount / loan.totalAmount) * 100}%` },
+                  { width: `${Math.min(100, (loan.paidAmount / loan.totalAmount) * 100)}%` },
                 ]}
               />
             </View>
@@ -109,7 +110,7 @@ const LoanCard = ({ loan, onPress }) => {
         {/* Due Date */}
         {isActive && (
           <View style={styles.dueDate}>
-            <Icon name="calendar-outline" size={14} color={COLORS.textTertiary} />
+            <Ionicons name="calendar-outline" size={14} color={COLORS.textTertiary} />
             <Text style={styles.dueDateText}>
               Дуусах: {formatDate(loan.dueDate)}
             </Text>

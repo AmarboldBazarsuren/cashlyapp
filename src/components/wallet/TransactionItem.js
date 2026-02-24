@@ -1,7 +1,6 @@
 /**
- * Transaction Item Component - ЗАСВАР
- * БАЙРШИЛ: src/components/wallet/TransactionItem.js
- *
+ * Transaction Item Component
+ * ✅ ЗАСВАР: react-native-vector-icons → @expo/vector-icons
  * ✅ status-д тулгуурлан icon болон өнгийг өөрчлөх
  * ✅ Татгалзсан (rejected) → улаан X icon
  * ✅ Хянагдаж байна (pending) → шар цагийн icon
@@ -10,7 +9,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import Card from '../common/Card';
 import { COLORS } from '../../constants/colors';
 import { formatMoney, formatDate } from '../../utils/formatters';
@@ -39,7 +38,6 @@ const TransactionItem = ({ transaction }) => {
   // ── Статусаар icon болон өнгийг тодорхойлох ──────────────
   const getStatusConfig = () => {
     const status = transaction.status;
-
     switch (status) {
       case 'rejected':
         return {
@@ -48,7 +46,6 @@ const TransactionItem = ({ transaction }) => {
           bgColor: COLORS.danger + '20',
           statusLabel: transaction.statusLabel || 'Татгалзсан',
           statusColor: COLORS.danger,
-          statusEmoji: '✕',
         };
       case 'pending':
         return {
@@ -57,17 +54,15 @@ const TransactionItem = ({ transaction }) => {
           bgColor: COLORS.warning + '20',
           statusLabel: transaction.statusLabel || 'Хянагдаж байна',
           statusColor: COLORS.warning,
-          statusEmoji: '⏳',
         };
       case 'completed':
       case 'paid':
         return {
-          icon: null, // type-ийн icon ашиглана
+          icon: null,
           iconColor: null,
           bgColor: null,
           statusLabel: transaction.statusLabel || 'Амжилттай',
           statusColor: COLORS.success,
-          statusEmoji: '✓',
         };
       case 'approved':
         return {
@@ -76,7 +71,6 @@ const TransactionItem = ({ transaction }) => {
           bgColor: COLORS.success + '20',
           statusLabel: transaction.statusLabel || 'Зөвшөөрсөн',
           statusColor: COLORS.success,
-          statusEmoji: '✓',
         };
       case 'expired':
         return {
@@ -85,7 +79,6 @@ const TransactionItem = ({ transaction }) => {
           bgColor: COLORS.textTertiary + '20',
           statusLabel: 'Хугацаа дууссан',
           statusColor: COLORS.textTertiary,
-          statusEmoji: '—',
         };
       default:
         return {
@@ -94,7 +87,6 @@ const TransactionItem = ({ transaction }) => {
           bgColor: null,
           statusLabel: status,
           statusColor: COLORS.textTertiary,
-          statusEmoji: '',
         };
     }
   };
@@ -102,17 +94,16 @@ const TransactionItem = ({ transaction }) => {
   const typeConfig = getTypeConfig();
   const statusConfig = getStatusConfig();
 
-  // Status-д тулгуурлан icon болон өнгийг шийдэх
   const finalIcon = statusConfig.icon || typeConfig.icon;
   const finalIconColor = statusConfig.iconColor || typeConfig.baseColor;
   const finalBgColor = statusConfig.bgColor || (typeConfig.baseColor + '20');
 
-  // Rejected бол дүнг саарал болгоно
-  const amountColor = transaction.status === 'rejected' || transaction.status === 'expired'
+  const isRejectedOrExpired = transaction.status === 'rejected' || transaction.status === 'expired';
+  const amountColor = isRejectedOrExpired
     ? COLORS.textTertiary
     : (typeConfig.sign === '+' ? COLORS.success : COLORS.danger);
 
-  const amountStyle = transaction.status === 'rejected' || transaction.status === 'expired'
+  const amountStyle = isRejectedOrExpired
     ? { textDecorationLine: 'line-through', color: COLORS.textTertiary }
     : { color: amountColor };
 
@@ -121,7 +112,7 @@ const TransactionItem = ({ transaction }) => {
       <View style={styles.content}>
         {/* Icon */}
         <View style={[styles.iconContainer, { backgroundColor: finalBgColor }]}>
-          <Icon name={finalIcon} size={24} color={finalIconColor} />
+          <Ionicons name={finalIcon} size={24} color={finalIconColor} />
         </View>
 
         {/* Дэлгэрэнгүй */}
@@ -130,7 +121,6 @@ const TransactionItem = ({ transaction }) => {
           {transaction.description ? (
             <Text style={styles.description} numberOfLines={1}>{transaction.description}</Text>
           ) : null}
-          {/* Татгалзсан шалтгаан */}
           {transaction.status === 'rejected' && transaction.rejectedReason ? (
             <Text style={styles.rejectedReason} numberOfLines={2}>
               ✕ {transaction.rejectedReason}

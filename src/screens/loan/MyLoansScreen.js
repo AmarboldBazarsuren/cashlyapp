@@ -1,5 +1,6 @@
 /**
  * Premium My Loans Screen
+ * ✅ ЗАСВАР: react-native-vector-icons → @expo/vector-icons (icon харагдахгүй асуудал шийдэгдлээ)
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -12,7 +13,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import { getMyLoans } from '../../services/loanService';
 import { useApp } from '../../context/AppContext';
 import LoanCard from '../../components/loan/LoanCard';
@@ -95,14 +96,14 @@ const MyLoansScreen = ({ navigation }) => {
                 end={{ x: 1, y: 0 }}
                 style={styles.filterButton}
               >
-                <Icon name={item.icon} size={16} color={COLORS.white} />
+                <Ionicons name={item.icon} size={16} color={COLORS.white} />
                 <Text style={[styles.filterText, styles.filterTextActive]}>
                   {item.label}
                 </Text>
               </LinearGradient>
             ) : (
               <View style={[styles.filterButton, styles.filterButtonInactive]}>
-                <Icon name={item.icon} size={16} color={COLORS.textTertiary} />
+                <Ionicons name={item.icon} size={16} color={COLORS.textTertiary} />
                 <Text style={styles.filterText}>{item.label}</Text>
               </View>
             )}
@@ -124,8 +125,8 @@ const MyLoansScreen = ({ navigation }) => {
         )}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={COLORS.primary}
           />
@@ -136,7 +137,7 @@ const MyLoansScreen = ({ navigation }) => {
               colors={[COLORS.primary + '20', COLORS.accent + '20']}
               style={styles.emptyIcon}
             >
-              <Icon name="wallet-outline" size={48} color={COLORS.primary} />
+              <Ionicons name="wallet-outline" size={48} color={COLORS.primary} />
             </LinearGradient>
             <Text style={styles.emptyText}>Зээл байхгүй байна</Text>
             <Text style={styles.emptySubtext}>
@@ -204,6 +205,7 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 20,
     paddingTop: 8,
+    paddingBottom: 100,
   },
   emptyContainer: {
     alignItems: 'center',

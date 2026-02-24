@@ -154,7 +154,7 @@ export default function CreditCheckScreen({ navigation }) {
           >
             <Ionicons name="card" size={20} color="#fff" />
             <Text style={styles.payBtnText}>
-              {loading ? 'Төлж байна...' : hasBalance ? 'Төлөх' : 'Хэтэвч цэнэглэх'}
+              {loading ? 'Төлж байна...' : hasBalance ? 'Төлөх' : 'Төлбөр төлөх'}
             </Text>
           </LinearGradient>
         </TouchableOpacity>

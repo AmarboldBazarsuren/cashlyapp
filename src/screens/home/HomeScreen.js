@@ -21,7 +21,7 @@ import { getWallet } from '../../services/walletService';
 import { getActiveLoans } from '../../services/loanService';
 import { COLORS } from '../../constants/colors';
 import { formatMoney } from '../../utils/formatters';
-
+import { useFocusEffect } from '@react-navigation/native';
 const LOAN_TYPES = [
   {
     id: 'digital', label: 'Дижитал зээл', sub: 'Хурдан, хялбар',
@@ -95,16 +95,21 @@ export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [balanceVisible, setBalanceVisible] = useState(true);
 
-  useEffect(() => { load(); }, []);
-
-  const load = async () => {
-    try {
-      const [p, w, l] = await Promise.all([getProfile(), getWallet(), getActiveLoans()]);
-      if (p?.success) updateUser(p.data.user);
-      if (w?.success) setWallet(w.data.wallet);
-      if (l?.success) setActiveLoans(l.data.loans);
-    } catch (e) { console.log('load error', e); }
-  };
+useFocusEffect(
+  useCallback(() => {
+    load();
+  }, [])
+);
+const load = async () => {
+  try {
+    const [p, w, l] = await Promise.all([getProfile(), getWallet(), getActiveLoans()]);
+    if (p?.success && p?.data?.user) {
+      updateUser(p.data.user);  // ← creditLimit, usedCreditLimit энд шинэчлэгдэнэ
+    }
+    if (w?.success) setWallet(w.data.wallet);
+    if (l?.success) setActiveLoans(l.data.loans);
+  } catch (e) { console.log('load error', e); }
+};
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
