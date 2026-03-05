@@ -1,7 +1,6 @@
 /**
- * Main Navigator - ANDROID EDGE-TO-EDGE FIXED
- * ✅ useSafeAreaInsets зөв ажиллана
- * ✅ Card background цагаан харагдана
+ * Main Navigator
+ * ✅ NotificationsScreen ProfileStack-д нэмсэн
  */
 
 import React from 'react';
@@ -98,6 +97,8 @@ const HomeStack = () => (
     <Stack.Screen name="KYCInfo" component={KYCInfoScreen} />
     <Stack.Screen name="KYCDocuments" component={KYCDocumentsScreen} />
     <Stack.Screen name="CreditCheck" component={CreditCheckScreen} />
+    {/* ✅ Notifications HomeStack-аас ч нээгдэх боломжтой */}
+    <Stack.Screen name="Notifications" component={NotificationsScreen} />
   </Stack.Navigator>
 );
 
@@ -122,6 +123,8 @@ const ProfileStack = () => (
     <Stack.Screen name="ProfileMain" component={ProfileScreen} />
     <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} />
     <Stack.Screen name="PersonalInfoView" component={PersonalInfoViewScreen} />
+    {/* ✅ NotificationsScreen ProfileStack-д нэмсэн */}
+    <Stack.Screen name="Notifications" component={NotificationsScreen} />
   </Stack.Navigator>
 );
 

@@ -1,6 +1,6 @@
 /**
- * ProfileScreen.js - ANDROID STATUS BAR FIXED
- * ✅ paddingTop динамик тооцоо
+ * ProfileScreen.js
+ * ✅ "Мэдэгдэл" menu → navigation.navigate('Notifications') зассан
  */
 
 import React from 'react';
@@ -25,6 +25,7 @@ const MENU_SECTIONS = [
   {
     title: 'Тохиргоо',
     items: [
+      // ✅ 'Notifications' screen нэр зөв болгосон
       { icon: 'notifications-outline', color: '#3B82F6', bg: '#DBEAFE', label: 'Мэдэгдэл', screen: 'Notifications' },
       { icon: 'lock-closed-outline', color: '#7C3AED', bg: '#EDE9FE', label: 'Нууц үг', screen: 'ChangePassword' },
       { icon: 'help-circle-outline', color: '#22C7BE', bg: '#E5FAFA', label: 'Тусламж & Дэмжлэг', screen: 'Support' },
@@ -45,7 +46,6 @@ export default function ProfileScreen({ navigation }) {
 
   const kyc = KYC_STATUS[user?.kycStatus] || KYC_STATUS.not_submitted;
 
-  // Android: StatusBar.currentHeight, iOS: insets.top
   const topPadding = Platform.OS === 'android'
     ? (StatusBar.currentHeight || 24) + 10
     : insets.top + 10;
@@ -66,7 +66,10 @@ export default function ProfileScreen({ navigation }) {
       case 'MyLoansMain':
         navigation.navigate('Loans', { screen: 'MyLoansMain' });
         break;
+      // ✅ Notifications screen руу navigate
       case 'Notifications':
+        navigation.navigate('Notifications');
+        break;
       case 'ChangePassword':
       case 'Support':
         alert(`"${screen}" хуудас тун удахгүй нэмэгдэнэ`);

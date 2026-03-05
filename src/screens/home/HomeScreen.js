@@ -1,6 +1,7 @@
 /**
  * HomeScreen.js
- * ✅ ANDROID FIXED: SafeAreaView (react-native) → View + useSafeAreaInsets
+ * ✅ Notification bell → NotificationsScreen navigate
+ * ✅ Unread count badge харуулах
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -17,6 +18,7 @@ import { useApp } from '../../context/AppContext';
 import { getProfile } from '../../services/userService';
 import { getWallet } from '../../services/walletService';
 import { getActiveLoans } from '../../services/loanService';
+import { getUnreadCount } from '../../services/notificationService';
 import { COLORS } from '../../constants/colors';
 import { formatMoney } from '../../utils/formatters';
 import { useFocusEffect } from '@react-navigation/native';
@@ -83,15 +85,26 @@ export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const [balanceVisible, setBalanceVisible] = useState(true);
+  // ✅ Unread notification count
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useFocusEffect(useCallback(() => { load(); }, []));
 
   const load = async () => {
     try {
-      const [p, w, l] = await Promise.all([getProfile(), getWallet(), getActiveLoans()]);
+      const [p, w, l, n] = await Promise.all([
+        getProfile(),
+        getWallet(),
+        getActiveLoans(),
+        getUnreadCount().catch(() => null), // алдаа гарсан ч гэсэн үргэлжлүүлнэ
+      ]);
       if (p?.success && p?.data?.user) updateUser(p.data.user);
       if (w?.success) setWallet(w.data.wallet);
       if (l?.success) setActiveLoans(l.data.loans);
+      // ✅ Unread count шинэчлэх
+      if (n?.success) {
+        setUnreadCount(n.data?.unreadCount ?? n.data?.count ?? 0);
+      }
     } catch (e) { console.log('load error', e); }
   };
 
@@ -140,6 +153,11 @@ export default function HomeScreen({ navigation }) {
     navigation.navigate('ApplyLoan');
   };
 
+  // ✅ Notification дэлгэц рүү явах
+  const handleNotifPress = () => {
+    navigation.navigate('Notifications');
+  };
+
   const multiplierLabel = multiplier < 1
     ? ` (${Math.round(multiplier * 100)}% · score ${creditScore})`
     : '';
@@ -162,9 +180,19 @@ export default function HomeScreen({ navigation }) {
               <Ionicons name="hand-left-outline" size={22} color="#EAB308" />
             </View>
           </View>
-          <TouchableOpacity style={styles.notifBtn} onPress={() => {}}>
+
+          {/* ✅ Notification bell — unread badge-тай */}
+          <TouchableOpacity style={styles.notifBtn} onPress={handleNotifPress}>
             <Ionicons name="notifications-outline" size={22} color="#0F0F1A" />
-            <View style={styles.notifBadge} />
+            {unreadCount > 0 && (
+              <View style={styles.notifBadge}>
+                {unreadCount <= 9 ? (
+                  <Text style={styles.notifBadgeText}>{unreadCount}</Text>
+                ) : (
+                  <Text style={styles.notifBadgeText}>9+</Text>
+                )}
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -401,8 +429,26 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 },
   greetText: { fontSize: 13, color: '#64748B', marginBottom: 2 },
   nameText:  { fontSize: 24, fontWeight: '800', color: '#0F0F1A', letterSpacing: -0.3 },
-  notifBtn:  { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
-  notifBadge: { position: 'absolute', top: 9, right: 9, width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444', borderWidth: 1.5, borderColor: '#fff' },
+
+  // ✅ Notification button - badge-тай
+  notifBtn:  {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1, shadowRadius: 8, elevation: 3,
+    position: 'relative',
+  },
+  notifBadge: {
+    position: 'absolute', top: 6, right: 6,
+    minWidth: 16, height: 16, borderRadius: 8,
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5, borderColor: '#fff',
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  notifBadgeText: {
+    fontSize: 9, fontWeight: '800', color: '#fff', lineHeight: 12,
+  },
 
   walletCard: { borderRadius: 24, padding: 22, marginBottom: 16, overflow: 'hidden', shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.28, shadowRadius: 24, elevation: 10 },
   decoA:      { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)', top: -30, right: -30 },

@@ -1,31 +1,48 @@
 /**
- * notificationService.js
+ * Notification Service - Frontend API
  * БАЙРШИЛ: src/services/notificationService.js
- * Backend: Notification model → /api/notification/*
+ *
+ * Backend-тэй холбогдох API функцүүд
+ * Endpoints:
+ *   GET  /api/notification/my           - Мэдэгдлүүд татах
+ *   GET  /api/notification/unread-count - Уншаагүй тоо
+ *   PUT  /api/notification/:id/read     - Нэг уншсан болгох
+ *   PUT  /api/notification/mark-all-read - Бүгдийг уншсан болгох
  */
 
-import api from './api'; // таны axios instance
+import api from './api';
 
-// Миний мэдэгдлүүд авах
+/**
+ * Миний бүх мэдэгдлүүд татах
+ * @param {number} page - Хуудасны дугаар (default: 1)
+ * @param {number} limit - Нэг хуудсанд харуулах тоо (default: 30)
+ */
 export const getMyNotifications = async (page = 1, limit = 30) => {
-  const res = await api.get(`/notification/my?page=${page}&limit=${limit}`);
-  return res.data;
+  const response = await api.get('/notification/my', { params: { page, limit } });
+  return response.data;
 };
 
-// Нэг мэдэгдлийг уншсан болгох
-export const markOneRead = async (notificationId) => {
-  const res = await api.put(`/notification/${notificationId}/read`);
-  return res.data;
-};
-
-// Бүгдийг уншсан болгох
-export const markAllRead = async () => {
-  const res = await api.put('/notification/mark-all-read');
-  return res.data;
-};
-
-// Уншаагүй тоо авах
+/**
+ * Уншаагүй мэдэгдлийн тоо авах
+ */
 export const getUnreadCount = async () => {
-  const res = await api.get('/notification/unread-count');
-  return res.data;
-};  
+  const response = await api.get('/notification/unread-count');
+  return response.data;
+};
+
+/**
+ * Нэг мэдэгдэл уншсан болгох
+ * @param {string} notificationId - Мэдэгдлийн ID
+ */
+export const markOneRead = async (notificationId) => {
+  const response = await api.put(`/notification/${notificationId}/read`);
+  return response.data;
+};
+
+/**
+ * Бүх мэдэгдлийг уншсан болгох
+ */
+export const markAllRead = async () => {
+  const response = await api.put('/notification/mark-all-read');
+  return response.data;
+};
