@@ -1,21 +1,17 @@
 /**
  * HomeScreen.js
- * ✅ 2025 ХУУЛИЙН ДАГУУ ШИНЭЧЛЭГДСЭН:
- *  - Credit score multiplier-ийн дагуу effective credit limit харуулах
- *    (<300 → 30%, <500 → 60%, ≥500 → 100%)
- *  - ZMS статус: "Та X/5 идэвхтэй зээлтэй" харуулах
- *  - Зээлийн эрхийн доод хэмжээ 480,000₮ reference
- *  - Stats row-д credit score харуулах
+ * ✅ ANDROID FIXED: SafeAreaView (react-native) → View + useSafeAreaInsets
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  RefreshControl, TouchableOpacity, SafeAreaView, StatusBar,
+  RefreshControl, TouchableOpacity, StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { getProfile } from '../../services/userService';
@@ -26,13 +22,12 @@ import { formatMoney } from '../../utils/formatters';
 import { useFocusEffect } from '@react-navigation/native';
 
 const LOAN_TYPES = [
-  { id: 'digital', label: 'Дижитал зээл', sub: 'Хурдан, хялбар',   icon: 'flash',           bg: '#EEEEFF', color: '#5B5BD6', available: true  },
-  { id: 'car',     label: 'Автомашин',    sub: 'Тун удахгүй',       icon: 'car-sport-outline',bg: '#E5FAFA', color: '#22C7BE', available: false },
-  { id: 'realty',  label: 'Үл хөдлөх',   sub: 'Тун удахгүй',       icon: 'home-outline',    bg: '#D1FAE5', color: '#10B981', available: false },
-  { id: 'biz',     label: 'Бизнес',       sub: 'Тун удахгүй',       icon: 'briefcase-outline',bg: '#FEF9C3', color: '#EAB308', available: false },
+  { id: 'digital', label: 'Дижитал зээл', sub: 'Хурдан, хялбар',    icon: 'flash',            bg: '#EEEEFF', color: '#5B5BD6', available: true  },
+  { id: 'car',     label: 'Автомашин',    sub: 'Тун удахгүй',        icon: 'car-sport-outline', bg: '#E5FAFA', color: '#22C7BE', available: false },
+  { id: 'realty',  label: 'Үл хөдлөх',   sub: 'Тун удахгүй',        icon: 'home-outline',      bg: '#D1FAE5', color: '#10B981', available: false },
+  { id: 'biz',     label: 'Бизнес',       sub: 'Тун удахгүй',        icon: 'briefcase-outline', bg: '#FEF9C3', color: '#EAB308', available: false },
 ];
 
-// 2025: Credit score multiplier
 function getCreditMultiplier(score) {
   if (!score || score < 300) return 0.30;
   if (score < 500) return 0.60;
@@ -85,6 +80,7 @@ const LoanRow = ({ item, onPress, isLocked }) => (
 export default function HomeScreen({ navigation }) {
   const { user, updateUser } = useAuth();
   const { wallet, setWallet, activeLoans, setActiveLoans } = useApp();
+  const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const [balanceVisible, setBalanceVisible] = useState(true);
 
@@ -105,7 +101,6 @@ export default function HomeScreen({ navigation }) {
     setRefreshing(false);
   }, []);
 
-  // ─── 2025: Credit limit тооцоо ─────────────────────────────────────────────
   const creditScore     = user?.creditScore || 0;
   const multiplier      = getCreditMultiplier(creditScore);
   const totalLimit      = user?.creditLimit || 0;
@@ -113,12 +108,10 @@ export default function HomeScreen({ navigation }) {
   const usedLimit       = user?.usedCreditLimit || 0;
   const availableCredit = Math.max(0, effectiveLimit - usedLimit);
 
-  // ZMS: манай системийн идэвхтэй зээл + гадны зээл
-  const externalLoans = user?.externalActiveLoansCount || 0;
+  const externalLoans    = user?.externalActiveLoansCount || 0;
   const totalActiveLoans = (activeLoans?.length || 0) + externalLoans;
-  const zmsLimited    = totalActiveLoans >= 4; // 5 дээр блок болно
+  const zmsLimited       = totalActiveLoans >= 4;
 
-  // Lock state
   const isLoansLocked = user?.kycStatus !== 'approved' || !user?.creditCheckPaid || totalLimit === 0;
 
   const canPayCreditCheck = () => {
@@ -141,19 +134,18 @@ export default function HomeScreen({ navigation }) {
       return;
     }
     if (totalActiveLoans >= 5) {
-      Toast.show({ type: 'error', text1: 'ZMS шалгуур', text2: `Та ${totalActiveLoans}/5 идэвхтэй зээлтэй байна. Зэрэг 5-аас дээш зээл авах боломжгүй.`, visibilityTime: 4000 });
+      Toast.show({ type: 'error', text1: 'ZMS шалгуур', text2: `Та ${totalActiveLoans}/5 идэвхтэй зээлтэй байна.`, visibilityTime: 4000 });
       return;
     }
     navigation.navigate('ApplyLoan');
   };
 
-  // Multiplier label
   const multiplierLabel = multiplier < 1
     ? ` (${Math.round(multiplier * 100)}% · score ${creditScore})`
     : '';
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={[styles.safe, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} translucent={false} />
 
       <ScrollView
@@ -192,9 +184,9 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.walletDivider} />
           <View style={styles.walletActions}>
             {[
-              { icon: 'add-circle-outline',    label: 'Цэнэглэх', nav: () => navigation.navigate('Wallet', { screen: 'Deposit' }) },
-              { icon: 'arrow-down-circle-outline', label: 'Татах', nav: () => navigation.navigate('Wallet', { screen: 'Withdraw' }) },
-              { icon: 'receipt-outline',       label: 'Түүх',    nav: () => navigation.navigate('Profile', { screen: 'TransactionHistory' }) },
+              { icon: 'add-circle-outline',        label: 'Цэнэглэх', nav: () => navigation.navigate('Wallet', { screen: 'Deposit' }) },
+              { icon: 'arrow-down-circle-outline',  label: 'Татах',    nav: () => navigation.navigate('Wallet', { screen: 'Withdraw' }) },
+              { icon: 'receipt-outline',            label: 'Түүх',     nav: () => navigation.navigate('Profile', { screen: 'TransactionHistory' }) },
             ].map((a) => (
               <TouchableOpacity key={a.label} style={styles.walletAction} onPress={a.nav}>
                 <View style={styles.walletActionCircle}><Ionicons name={a.icon} size={20} color="#5B5BD6" /></View>
@@ -244,7 +236,6 @@ export default function HomeScreen({ navigation }) {
 
           <View style={styles.creditDivider} />
 
-          {/* ZMS статус */}
           {!isLoansLocked && (
             <View style={styles.zmsRow}>
               <Ionicons
@@ -305,7 +296,6 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
-        {/* Credit check banner */}
         {user?.kycStatus === 'approved' && !user?.creditCheckPaid && (
           <TouchableOpacity
             style={[styles.kycBanner, { backgroundColor: canPayCreditCheck() ? '#FEF9C3' : '#FEE2E2', borderColor: canPayCreditCheck() ? '#EAB308' : '#EF4444' }]}
@@ -328,7 +318,6 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
-        {/* Credit check processing */}
         {user?.kycStatus === 'approved' && user?.creditCheckPaid && totalLimit === 0 && (
           <View style={[styles.kycBanner, { backgroundColor: '#DBEAFE', borderColor: '#3B82F6' }]}>
             <View style={styles.kycBannerLeft}>
@@ -343,7 +332,6 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
 
-        {/* Multiplier warning */}
         {!isLoansLocked && creditScore > 0 && creditScore < 500 && (
           <View style={[styles.kycBanner, { backgroundColor: creditScore < 300 ? '#FEF2F2' : '#FFF9EC', borderColor: creditScore < 300 ? '#EF4444' : '#F59E0B' }]}>
             <View style={styles.kycBannerLeft}>
@@ -353,7 +341,7 @@ export default function HomeScreen({ navigation }) {
               <View style={{ flex: 1 }}>
                 <Text style={styles.kycBannerTitle}>Credit score анхааруулга</Text>
                 <Text style={[styles.kycBannerSub, { color: creditScore < 300 ? '#DC2626' : '#92400E' }]}>
-                  Score {creditScore} → нийт эрхийн {Math.round(multiplier * 100)}% буюу {formatMoney(effectiveLimit)}₮ ашиглах боломжтой
+                  Score {creditScore} → нийт эрхийн {Math.round(multiplier * 100)}% буюу {formatMoney(effectiveLimit)}₮
                 </Text>
               </View>
             </View>
@@ -403,7 +391,7 @@ export default function HomeScreen({ navigation }) {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -438,10 +426,8 @@ const styles = StyleSheet.create({
   creditSubtext:   { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
   creditLockedText:{ fontSize: 14, color: '#94A3B8', fontWeight: '600', marginTop: 4 },
   creditDivider:   { height: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginBottom: 10 },
-
   zmsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   zmsText: { fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '500' },
-
   creditButton:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 14, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
   creditButtonLocked: { backgroundColor: '#fff', borderColor: '#E2E8F0' },
   creditButtonText:   { fontSize: 15, fontWeight: '700', color: '#fff' },

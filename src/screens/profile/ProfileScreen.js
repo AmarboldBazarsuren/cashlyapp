@@ -1,16 +1,16 @@
 /**
- * ProfileScreen.js - UPDATED
- * ✅ KYC болон хувийн мэдээлэл нэгтгэсэн
- * ✅ Зөвхөн харах горим (read-only)
+ * ProfileScreen.js - ANDROID STATUS BAR FIXED
+ * ✅ paddingTop динамик тооцоо
  */
 
 import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, SafeAreaView, StatusBar,
+  TouchableOpacity, StatusBar, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS } from '../../constants/colors';
 
@@ -41,8 +41,14 @@ const KYC_STATUS = {
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const kyc = KYC_STATUS[user?.kycStatus] || KYC_STATUS.not_submitted;
+
+  // Android: StatusBar.currentHeight, iOS: insets.top
+  const topPadding = Platform.OS === 'android'
+    ? (StatusBar.currentHeight || 24) + 10
+    : insets.top + 10;
 
   const handleLogout = async () => {
     try {
@@ -71,15 +77,17 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const handlePersonalInfo = () => {
-    // Navigate to personal info view screen
     navigation.navigate('PersonalInfoView');
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
       <StatusBar barStyle="dark-content" backgroundColor="#F2F4F9" translucent={false} />
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingTop: topPadding }]}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.pageTitle}>Профайл</Text>
 
         {/* Profile Card */}
@@ -183,13 +191,13 @@ export default function ProfileScreen({ navigation }) {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F2F4F9' },
-  scroll: { paddingHorizontal: 18, paddingTop: 10 },
+  scroll: { paddingHorizontal: 18 },
   pageTitle: { fontSize: 26, fontWeight: '800', color: '#0F0F1A', letterSpacing: -0.5, marginBottom: 18 },
   profileCard: { borderRadius: 24, padding: 24, alignItems: 'center', marginBottom: 16, overflow: 'hidden', shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.26, shadowRadius: 22, elevation: 9 },
   decoCircle1: { position: 'absolute', width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.1)', top: -40, right: -30 },

@@ -1,11 +1,11 @@
 /**
- * Main Navigator - IOS BOTTOM SPACING FIXED
- * ✅ iOS: insets.bottom нэг удаа тооцно (давхардахгүй)
- * ✅ Android: gesture nav bar зай зөв
+ * Main Navigator - ANDROID EDGE-TO-EDGE FIXED
+ * ✅ useSafeAreaInsets зөв ажиллана
+ * ✅ Card background цагаан харагдана
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,6 +22,7 @@ import ExtendLoanScreen from '../screens/loan/ExtendLoanScreen';
 import KYCInfoScreen from '../screens/kyc/KYCInfoScreen';
 import KYCDocumentsScreen from '../screens/kyc/KYCDocumentsScreen';
 import CreditCheckScreen from '../screens/kyc/CreditCheckScreen';
+import NotificationsScreen from '../screens/profile/NotificationsScreen';
 import DepositScreen from '../screens/wallet/DepositScreen';
 import WithdrawScreen from '../screens/wallet/WithdrawScreen';
 import TransactionHistoryScreen from '../screens/profile/TransactionHistoryScreen';
@@ -44,14 +45,10 @@ const LABEL_MAP = {
 
 const CustomTabBar = ({ state, navigation }) => {
   const insets = useSafeAreaInsets();
-
-  // iOS: SafeAreaView-г ашиглахгүй учир insets.bottom-г өөрөө нэмнэ
-  // Android: edgeToEdge + gesture nav bar → insets.bottom ашиглана
-  // Хоёр тохиолдолд давхардуулахгүй
-  const extraBottom = insets.bottom;
+  const bottomPad = insets.bottom > 0 ? insets.bottom : 8;
 
   return (
-    <View style={[styles.container, { paddingBottom: extraBottom }]}>
+    <View style={[styles.container, { paddingBottom: bottomPad }]}>
       <View style={styles.row}>
         {state.routes.map((route, index) => {
           const isFocused = state.index === index;
@@ -83,7 +80,7 @@ const CustomTabBar = ({ state, navigation }) => {
                   <Ionicons name={icons.inactive} size={22} color={COLORS.textTertiary} />
                 </View>
               )}
-              <Text style={[styles.label, isFocused && styles.labelActive]}>
+              <Text style={[styles.label, isFocused && styles.labelActive]} numberOfLines={1}>
                 {LABEL_MAP[route.name]}
               </Text>
             </TouchableOpacity>
@@ -146,7 +143,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.backgroundCard,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderTopWidth: 1,
@@ -156,12 +153,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 14,
-    // overflow: 'hidden' — iOS border radius-д shadow алдагдуулна, тиймээс хасав
   },
   row: {
     flexDirection: 'row',
     paddingTop: 8,
-    paddingBottom: 8,
+    paddingBottom: 4,
     paddingHorizontal: 8,
   },
   tab: {

@@ -1,12 +1,15 @@
 /**
  * CASHLY APP - Main Component
- * ЗАСВАР: StatusBar translucent=false → хуудас status bar-ын ард ордоггүй болно
+ * ✅ ANDROID EDGE-TO-EDGE FIXED
+ * - SafeAreaProvider нэмсэн → бүх дэлгэц зөв insets авна
+ * - StatusBar translucent=false + backgroundColor тохируулсан
  */
 
 import React from 'react';
-import { StatusBar, LogBox } from 'react-native';
+import { StatusBar, LogBox, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 import { AuthProvider } from './src/context/AuthContext';
@@ -19,20 +22,21 @@ LogBox.ignoreAllLogs();
 const App = () => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <AppProvider>
-          <NavigationContainer>
-         
-            <StatusBar
-              barStyle="light-content"
-              backgroundColor={COLORS.background}
-              translucent={false}
-            />
-            <AppNavigator />
-            <Toast />
-          </NavigationContainer>
-        </AppProvider>
-      </AuthProvider>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <AppProvider>
+            <NavigationContainer>
+              <StatusBar
+                barStyle="dark-content"
+                backgroundColor={COLORS.background}
+                translucent={false}
+              />
+              <AppNavigator />
+              <Toast />
+            </NavigationContainer>
+          </AppProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 };
