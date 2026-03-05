@@ -1,21 +1,14 @@
 /**
- * Premium Apply Loan Screen - FIXED
- * SafeAreaView, Better scrolling
+ * Apply Loan Screen - ANDROID KEYBOARD FIXED
  */
 
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-  Platform,
+  View, Text, StyleSheet, ScrollView,
+  TouchableOpacity, SafeAreaView, StatusBar, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { applyLoan } from '../../services/loanService';
 import { useAuth } from '../../context/AuthContext';
@@ -39,20 +32,11 @@ const ApplyLoanScreen = ({ navigation }) => {
 
   const handleApply = async () => {
     if (!amount || parseFloat(amount) < MIN_LOAN_AMOUNT) {
-      Toast.show({
-        type: 'error',
-        text1: 'Алдаа',
-        text2: `Хамгийн бага зээл ${formatMoney(MIN_LOAN_AMOUNT)}₮`,
-      });
+      Toast.show({ type: 'error', text1: 'Алдаа', text2: `Хамгийн бага зээл ${formatMoney(MIN_LOAN_AMOUNT)}₮` });
       return;
     }
-
     if (parseFloat(amount) > user.creditLimit) {
-      Toast.show({
-        type: 'error',
-        text1: 'Алдаа',
-        text2: `Зээлийн эрх хүрэлцэхгүй. Таны эрх: ${formatMoney(user.creditLimit)}₮`,
-      });
+      Toast.show({ type: 'error', text1: 'Алдаа', text2: `Зээлийн эрх хүрэлцэхгүй. Таны эрх: ${formatMoney(user.creditLimit)}₮` });
       return;
     }
 
@@ -60,19 +44,11 @@ const ApplyLoanScreen = ({ navigation }) => {
     try {
       const response = await applyLoan(parseFloat(amount), term, 'Хувийн');
       if (response.success) {
-        Toast.show({
-          type: 'success',
-          text1: 'Амжилттай',
-          text2: response.message,
-        });
+        Toast.show({ type: 'success', text1: 'Амжилттай', text2: response.message });
         navigation.goBack();
       }
     } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Алдаа',
-        text2: error.message || 'Хүсэлт илгээхэд алдаа гарлаа',
-      });
+      Toast.show({ type: 'error', text1: 'Алдаа', text2: error.message || 'Хүсэлт илгээхэд алдаа гарлаа' });
     } finally {
       setLoading(false);
     }
@@ -80,44 +56,38 @@ const ApplyLoanScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
-      
-      <View style={styles.container}>
-        {/* Header */}
-        <LinearGradient
-          colors={[COLORS.background, COLORS.backgroundSecondary]}
-          style={styles.header}
-        >
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Зээл авах</Text>
-          <View style={{ width: 40 }} />
-        </LinearGradient>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} translucent={false} />
 
-        <ScrollView 
-          style={styles.scrollView}
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Зээл авах</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          style={styles.flex}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {/* Credit Limit Card */}
           <LinearGradient
             colors={[COLORS.success, COLORS.successLight]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={styles.creditCard}
           >
-            <View style={styles.creditCardInner}>
-              <Icon name="shield-checkmark" size={32} color={COLORS.white} />
-              <View style={styles.creditContent}>
-                <Text style={styles.creditLabel}>Таны зээлийн эрх</Text>
-                <Text style={styles.creditAmount}>
-                  {formatMoney(user?.creditLimit || 0)}₮
-                </Text>
-              </View>
+            <Ionicons name="shield-checkmark" size={30} color={COLORS.white} />
+            <View style={styles.creditContent}>
+              <Text style={styles.creditLabel}>Таны зээлийн эрх</Text>
+              <Text style={styles.creditAmount}>{formatMoney(user?.creditLimit || 0)}₮</Text>
             </View>
           </LinearGradient>
 
@@ -141,71 +111,53 @@ const ApplyLoanScreen = ({ navigation }) => {
                 <TouchableOpacity
                   key={termOption.value}
                   onPress={() => setTerm(termOption.value)}
-                  activeOpacity={0.7}
+                  activeOpacity={0.75}
+                  style={[
+                    styles.termButton,
+                    term === termOption.value && styles.termButtonActive,
+                  ]}
                 >
-                  <LinearGradient
-                    colors={term === termOption.value 
-                      ? [COLORS.gradientStart, COLORS.gradientMiddle]
-                      : [COLORS.glass, COLORS.glass]
-                    }
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[
-                      styles.termButton,
-                      term === termOption.value && styles.termButtonActive,
-                    ]}
-                  >
-                    <Text style={[
-                      styles.termLabel,
-                      term === termOption.value && styles.termLabelActive,
-                    ]}>
-                      {termOption.label}
-                    </Text>
-                    <Text style={[
-                      styles.termRate,
-                      term === termOption.value && styles.termRateActive,
-                    ]}>
-                      {termOption.rate}% хүү
-                    </Text>
-                  </LinearGradient>
+                  {term === termOption.value ? (
+                    <LinearGradient
+                      colors={[COLORS.gradientStart, COLORS.gradientMiddle]}
+                      style={styles.termGradient}
+                    >
+                      <Text style={[styles.termLabel, styles.termLabelActive]}>{termOption.label}</Text>
+                      <Text style={[styles.termRate, styles.termRateActive]}>{termOption.rate}% хүү</Text>
+                    </LinearGradient>
+                  ) : (
+                    <View style={styles.termInner}>
+                      <Text style={styles.termLabel}>{termOption.label}</Text>
+                      <Text style={styles.termRate}>{termOption.rate}% хүү</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
-          {/* Summary Card */}
+          {/* Summary */}
           {amount && parseFloat(amount) >= MIN_LOAN_AMOUNT && (
             <Card variant="gradient" style={styles.summaryCard}>
               <Text style={styles.summaryTitle}>Нэгтгэл</Text>
-              
               <View style={styles.summaryRow}>
-                <Icon name="cash-outline" size={20} color={COLORS.textSecondary} />
+                <Ionicons name="cash-outline" size={18} color={COLORS.textSecondary} />
                 <Text style={styles.summaryLabel}>Зээлийн дүн</Text>
-                <Text style={styles.summaryValue}>
-                  {formatMoney(parseFloat(amount))}₮
-                </Text>
+                <Text style={styles.summaryValue}>{formatMoney(parseFloat(amount))}₮</Text>
               </View>
-              
               <View style={styles.summaryRow}>
-                <Icon name="trending-up-outline" size={20} color={COLORS.textSecondary} />
+                <Ionicons name="trending-up-outline" size={18} color={COLORS.textSecondary} />
                 <Text style={styles.summaryLabel}>Хүү ({interestRate}%)</Text>
-                <Text style={styles.summaryValue}>
-                  {formatMoney(interestAmount)}₮
-                </Text>
+                <Text style={styles.summaryValue}>{formatMoney(interestAmount)}₮</Text>
               </View>
-              
               <View style={styles.divider} />
-              
               <View style={styles.summaryRow}>
-                <Icon name="card-outline" size={20} color={COLORS.primary} />
+                <Ionicons name="card-outline" size={18} color={COLORS.primary} />
                 <Text style={styles.summaryLabelTotal}>Нийт төлөх</Text>
-                <Text style={styles.summaryValueTotal}>
-                  {formatMoney(totalAmount)}₮
-                </Text>
+                <Text style={styles.summaryValueTotal}>{formatMoney(totalAmount)}₮</Text>
               </View>
-              
               <View style={styles.summaryRow}>
-                <Icon name="time-outline" size={20} color={COLORS.textSecondary} />
+                <Ionicons name="time-outline" size={18} color={COLORS.textSecondary} />
                 <Text style={styles.summaryLabel}>Хугацаа</Text>
                 <Text style={styles.summaryValue}>{term} хоног</Text>
               </View>
@@ -219,168 +171,58 @@ const ApplyLoanScreen = ({ navigation }) => {
             style={styles.applyButton}
             disabled={!amount || parseFloat(amount) < MIN_LOAN_AMOUNT}
           />
+
+          <View style={{ height: 120 }} />
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
+  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  flex: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 20,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 12, paddingBottom: 12, paddingHorizontal: 20,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: COLORS.glass, borderWidth: 1, borderColor: COLORS.border,
+    alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 150,
-  },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary },
+  scrollContent: { padding: 20 },
   creditCard: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: COLORS.success,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 6,
+    borderRadius: 20, padding: 20, marginBottom: 20,
+    flexDirection: 'row', alignItems: 'center', elevation: 4,
   },
-  creditCardInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  creditContent: {
-    marginLeft: 16,
-  },
-  creditLabel: {
-    fontSize: 13,
-    color: COLORS.white,
-    opacity: 0.9,
-    marginBottom: 4,
-  },
-  creditAmount: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: COLORS.white,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: 12,
-  },
-  termContainer: {
-    gap: 12,
-  },
+  creditContent: { marginLeft: 14 },
+  creditLabel: { fontSize: 13, color: COLORS.white, opacity: 0.9, marginBottom: 4 },
+  creditAmount: { fontSize: 24, fontWeight: '900', color: COLORS.white },
+  section: { marginBottom: 20 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 10 },
+  termContainer: { gap: 10 },
   termButton: {
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.border,
+    overflow: 'hidden', backgroundColor: COLORS.white,
   },
-  termButtonActive: {
-    borderColor: 'transparent',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  termLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
-    marginBottom: 4,
-  },
-  termLabelActive: {
-    color: COLORS.white,
-  },
-  termRate: {
-    fontSize: 13,
-    color: COLORS.textTertiary,
-  },
-  termRateActive: {
-    color: COLORS.white,
-    opacity: 0.9,
-  },
-  summaryCard: {
-    marginBottom: 24,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: 16,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  summaryLabel: {
-    flex: 1,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginLeft: 12,
-  },
-  summaryValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: 12,
-  },
-  summaryLabelTotal: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginLeft: 12,
-  },
-  summaryValueTotal: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: COLORS.primary,
-  },
-  applyButton: {
-    marginBottom: 24,
-  },
+  termButtonActive: { borderColor: 'transparent', elevation: 3 },
+  termGradient: { padding: 16 },
+  termInner: { padding: 16 },
+  termLabel: { fontSize: 15, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 2 },
+  termLabelActive: { color: COLORS.white },
+  termRate: { fontSize: 13, color: COLORS.textTertiary },
+  termRateActive: { color: COLORS.white, opacity: 0.9 },
+  summaryCard: { marginBottom: 20 },
+  summaryTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 14 },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  summaryLabel: { flex: 1, fontSize: 14, color: COLORS.textSecondary, marginLeft: 10 },
+  summaryValue: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 10 },
+  summaryLabelTotal: { flex: 1, fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginLeft: 10 },
+  summaryValueTotal: { fontSize: 18, fontWeight: '900', color: COLORS.primary },
+  applyButton: { marginBottom: 8 },
 });
 
 export default ApplyLoanScreen;

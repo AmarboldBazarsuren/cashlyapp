@@ -1,6 +1,7 @@
 /**
- * Premium Main Navigator - UPDATED
- * Emoji → Ionicons + CreditCheck, PersonalInfoView screens
+ * Main Navigator - IOS BOTTOM SPACING FIXED
+ * ✅ iOS: insets.bottom нэг удаа тооцно (давхардахгүй)
+ * ✅ Android: gesture nav bar зай зөв
  */
 
 import React from 'react';
@@ -9,28 +10,20 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Screens
 import HomeScreen from '../screens/home/HomeScreen';
 import MyLoansScreen from '../screens/loan/MyLoansScreen';
 import WalletScreen from '../screens/wallet/WalletScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
-
-// Loan Screens
 import ApplyLoanScreen from '../screens/loan/ApplyLoanScreen';
 import LoanDetailsScreen from '../screens/loan/LoanDetailsScreen';
 import ExtendLoanScreen from '../screens/loan/ExtendLoanScreen';
-
-// KYC Screens
 import KYCInfoScreen from '../screens/kyc/KYCInfoScreen';
 import KYCDocumentsScreen from '../screens/kyc/KYCDocumentsScreen';
 import CreditCheckScreen from '../screens/kyc/CreditCheckScreen';
-
-// Wallet Screens
 import DepositScreen from '../screens/wallet/DepositScreen';
 import WithdrawScreen from '../screens/wallet/WithdrawScreen';
-
-// Profile Screens
 import TransactionHistoryScreen from '../screens/profile/TransactionHistoryScreen';
 import PersonalInfoViewScreen from '../screens/profile/PersonalInfoViewScreen';
 
@@ -39,97 +32,70 @@ import { COLORS } from '../constants/colors';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-// Custom Tab Bar Component
-const CustomTabBar = ({ state, descriptors, navigation }) => {
+const ICON_MAP = {
+  Home:    { active: 'home',   inactive: 'home-outline' },
+  Loans:   { active: 'wallet', inactive: 'wallet-outline' },
+  Wallet:  { active: 'card',   inactive: 'card-outline' },
+  Profile: { active: 'person', inactive: 'person-outline' },
+};
+const LABEL_MAP = {
+  Home: 'Нүүр', Loans: 'Зээлүүд', Wallet: 'Хэтэвч', Profile: 'Профайл',
+};
+
+const CustomTabBar = ({ state, navigation }) => {
+  const insets = useSafeAreaInsets();
+
+  // iOS: SafeAreaView-г ашиглахгүй учир insets.bottom-г өөрөө нэмнэ
+  // Android: edgeToEdge + gesture nav bar → insets.bottom ашиглана
+  // Хоёр тохиолдолд давхардуулахгүй
+  const extraBottom = insets.bottom;
+
   return (
-    <View style={styles.tabBarContainer}>
-      <LinearGradient
-        colors={[COLORS.backgroundCard, COLORS.background]}
-        style={styles.tabBarGradient}
-      >
-        <View style={styles.tabBar}>
-          {state.routes.map((route, index) => {
-            const { options } = descriptors[route.key];
-            const isFocused = state.index === index;
+    <View style={[styles.container, { paddingBottom: extraBottom }]}>
+      <View style={styles.row}>
+        {state.routes.map((route, index) => {
+          const isFocused = state.index === index;
+          const icons = ICON_MAP[route.name] || { active: 'apps', inactive: 'apps-outline' };
 
-            const onPress = () => {
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
+          const onPress = () => {
+            const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+            if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name);
+          };
 
-              if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
-              }
-            };
-
-            // Icon names
-            const iconNames = {
-              Home: isFocused ? 'home' : 'home-outline',
-              Loans: isFocused ? 'wallet' : 'wallet-outline',
-              Wallet: isFocused ? 'card' : 'card-outline',
-              Profile: isFocused ? 'person' : 'person-outline',
-            };
-
-            // Labels
-            const labels = {
-              Home: 'Нүүр',
-              Loans: 'Зээлүүд',
-              Wallet: 'Хэтэвч',
-              Profile: 'Профайл',
-            };
-
-            return (
-              <TouchableOpacity
-                key={route.key}
-                onPress={onPress}
-                style={styles.tabButton}
-                activeOpacity={0.7}
-              >
-                {isFocused ? (
-                  <LinearGradient
-                    colors={[COLORS.gradientStart, COLORS.gradientMiddle]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.activeTabBackground}
-                  >
-                    <Ionicons 
-                      name={iconNames[route.name]} 
-                      size={24} 
-                      color={COLORS.white}
-                    />
-                  </LinearGradient>
-                ) : (
-                  <Ionicons 
-                    name={iconNames[route.name]} 
-                    size={24} 
-                    color={COLORS.textTertiary}
-                  />
-                )}
-                <Text style={[
-                  styles.tabLabel,
-                  isFocused && styles.tabLabelActive
-                ]}>
-                  {labels[route.name]}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </LinearGradient>
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={onPress}
+              style={styles.tab}
+              activeOpacity={0.7}
+            >
+              {isFocused ? (
+                <LinearGradient
+                  colors={[COLORS.gradientStart, COLORS.gradientMiddle]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.activeCircle}
+                >
+                  <Ionicons name={icons.active} size={22} color="#fff" />
+                </LinearGradient>
+              ) : (
+                <View style={styles.inactiveIcon}>
+                  <Ionicons name={icons.inactive} size={22} color={COLORS.textTertiary} />
+                </View>
+              )}
+              <Text style={[styles.label, isFocused && styles.labelActive]}>
+                {LABEL_MAP[route.name]}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 };
 
-// Home Stack
 const HomeStack = () => (
-  <Stack.Navigator
-    screenOptions={{
-      headerShown: false,
-      cardStyle: { backgroundColor: COLORS.background },
-    }}
-  >
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="HomeMain" component={HomeScreen} />
     <Stack.Screen name="ApplyLoan" component={ApplyLoanScreen} />
     <Stack.Screen name="KYCInfo" component={KYCInfoScreen} />
@@ -138,116 +104,97 @@ const HomeStack = () => (
   </Stack.Navigator>
 );
 
-// Loans Stack
 const LoansStack = () => (
-  <Stack.Navigator
-    screenOptions={{
-      headerShown: false,
-      cardStyle: { backgroundColor: COLORS.background },
-    }}
-  >
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="MyLoansMain" component={MyLoansScreen} />
     <Stack.Screen name="LoanDetails" component={LoanDetailsScreen} />
     <Stack.Screen name="ExtendLoan" component={ExtendLoanScreen} />
   </Stack.Navigator>
 );
 
-// Wallet Stack
 const WalletStack = () => (
-  <Stack.Navigator
-    screenOptions={{
-      headerShown: false,
-      cardStyle: { backgroundColor: COLORS.background },
-    }}
-  >
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="WalletMain" component={WalletScreen} />
     <Stack.Screen name="Deposit" component={DepositScreen} />
     <Stack.Screen name="Withdraw" component={WithdrawScreen} />
   </Stack.Navigator>
 );
 
-// Profile Stack
 const ProfileStack = () => (
-  <Stack.Navigator
-    screenOptions={{
-      headerShown: false,
-      cardStyle: { backgroundColor: COLORS.background },
-    }}
-  >
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="ProfileMain" component={ProfileScreen} />
     <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} />
     <Stack.Screen name="PersonalInfoView" component={PersonalInfoViewScreen} />
   </Stack.Navigator>
 );
 
-const MainNavigator = () => {
-  return (
-    <Tab.Navigator
-      tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Tab.Screen name="Home" component={HomeStack} />
-      <Tab.Screen name="Loans" component={LoansStack} />
-      <Tab.Screen name="Wallet" component={WalletStack} />
-      <Tab.Screen name="Profile" component={ProfileStack} />
-    </Tab.Navigator>
-  );
-};
+const MainNavigator = () => (
+  <Tab.Navigator
+    tabBar={(props) => <CustomTabBar {...props} />}
+    screenOptions={{ headerShown: false }}
+  >
+    <Tab.Screen name="Home" component={HomeStack} />
+    <Tab.Screen name="Loans" component={LoansStack} />
+    <Tab.Screen name="Wallet" component={WalletStack} />
+    <Tab.Screen name="Profile" component={ProfileStack} />
+  </Tab.Navigator>
+);
 
 const styles = StyleSheet.create({
-  tabBarContainer: {
+  container: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingBottom: Platform.OS === 'android' ? 20 : 0,
-  },
-  tabBarGradient: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: 'hidden',
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 20,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
-    paddingHorizontal: 16,
+    backgroundColor: COLORS.backgroundCard,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 14,
+    // overflow: 'hidden' — iOS border radius-д shadow алдагдуулна, тиймээс хасав
   },
-  tabButton: {
+  row: {
+    flexDirection: 'row',
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingHorizontal: 8,
+  },
+  tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    gap: 2,
+    minHeight: 54,
   },
-  activeTabBackground: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  activeCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
     shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  tabLabel: {
+  inactiveIcon: {
+    width: 46,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  label: {
     fontSize: 11,
     fontWeight: '600',
     color: COLORS.textTertiary,
-    marginTop: 4,
   },
-  tabLabelActive: {
+  labelActive: {
     color: COLORS.primary,
     fontWeight: '700',
   },

@@ -1,404 +1,255 @@
 /**
- * Premium Deposit Screen - FIXED
- * SafeAreaView, KeyboardAvoidingView, CustomAlert
+ * DepositScreen — Minimal
+ * ✅ CTA button ScrollView-с гадна → үргэлж харагдана
+ * ✅ deposit() функц
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  StatusBar,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  TextInput, StatusBar, Animated, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { CommonActions } from '@react-navigation/native';
 import { deposit } from '../../services/walletService';
 import { useApp } from '../../context/AppContext';
-import Button from '../../components/common/Button';
-import Input from '../../components/common/Input';
-import Card from '../../components/common/Card';
 import CustomAlert from '../../components/common/CustomAlert';
 import { COLORS } from '../../constants/colors';
-import { MIN_DEPOSIT_AMOUNT } from '../../constants/config';
 import { formatMoney } from '../../utils/formatters';
 
-const DepositScreen = ({ navigation }) => {
+const QUICK = [10000, 50000, 100000, 500000];
+
+export default function DepositScreen({ navigation }) {
   const { wallet, setWallet } = useApp();
-  const [amount, setAmount] = useState('');
+  const [raw, setRaw] = useState('');
+  const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
+  const inputRef = useRef(null);
+  const shakeAnim = useRef(new Animated.Value(0)).current;
 
-  const quickAmounts = [10000, 50000, 100000, 500000];
+  const balance = wallet?.balance ?? 0;
+  const amount = parseInt(raw.replace(/\D/g, ''), 10) || 0;
+  const isValid = amount >= 10000;
+  const after = balance + amount;
+
+  const handleChange = (text) => setRaw(text.replace(/\D/g, ''));
+
+  const addQuick = (v) => {
+    const next = Math.min(1000000, amount + v);
+    setRaw(String(next));
+  };
+
+  const shake = () => Animated.sequence([
+    Animated.timing(shakeAnim, { toValue: 8, duration: 60, useNativeDriver: true }),
+    Animated.timing(shakeAnim, { toValue: -8, duration: 60, useNativeDriver: true }),
+    Animated.timing(shakeAnim, { toValue: 5, duration: 50, useNativeDriver: true }),
+    Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+  ]).start();
 
   const handleDeposit = () => {
-    if (!amount || parseFloat(amount) < MIN_DEPOSIT_AMOUNT) {
-      Toast.show({
-        type: 'error',
-        text1: 'Алдаа',
-        text2: `Хамгийн бага цэнэглэх дүн ${formatMoney(MIN_DEPOSIT_AMOUNT)}₮`,
-      });
-      return;
-    }
-
+    if (!isValid) { shake(); Toast.show({ type: 'error', text1: 'Хамгийн бага дүн 10,000₮' }); return; }
     setAlertVisible(true);
   };
 
-  const confirmDeposit = async () => {
+  const confirm = async () => {
     setLoading(true);
     try {
-      const response = await deposit(
-        parseFloat(amount),
-        'admin',
-        'TEST_' + Date.now()
-      );
-
-      if (response.success) {
-        Toast.show({
-          type: 'success',
-          text1: 'Амжилттай',
-          text2: response.message,
-        });
-        setWallet(response.data.wallet);
-        
-        // ✅ Хэтэвч хуудас руу буцах - stack-ийг reset хийнэ
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [
-              { name: 'WalletMain' }
-            ],
-          })
-        );
+      const res = await deposit(amount, 'admin', 'DEP_' + Date.now());
+      if (res.success) {
+        setWallet(res.data.wallet);
+        Toast.show({ type: 'success', text1: '✓ Амжилттай цэнэглэгдлээ!' });
+        navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'WalletMain' }] }));
       }
-    } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Алдаа',
-        text2: error.message || 'Цэнэглэлт хийхэд алдаа гарлаа',
-      });
+    } catch (e) {
+      Toast.show({ type: 'error', text1: 'Алдаа', text2: e.message });
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Back товч дарахад хэтэвч хуудас руу буцах
-  const handleBack = () => {
-    navigation.dispatch(
-      CommonActions.reset({
-        index: 0,
-        routes: [
-          { name: 'WalletMain' }
-        ],
-      })
-    );
-  };
+  const goBack = () => navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'WalletMain' }] }));
+
+  const displayValue = raw ? formatMoney(parseInt(raw, 10)) : '';
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
-      
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-      >
-        {/* Header */}
-        <LinearGradient
-          colors={[COLORS.background, COLORS.backgroundSecondary]}
-          style={styles.header}
-        >
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={handleBack}
-          >
-            <Icon name="arrow-back" size={24} color={COLORS.textPrimary} />
+    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FAFAFA" />
+
+      <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+
+        {/* ── Header ── */}
+        <View style={s.header}>
+          <TouchableOpacity onPress={goBack} style={s.backBtn}>
+            <Ionicons name="chevron-back" size={20} color="#1C1C1E" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Цэнэглэх</Text>
+          <Text style={s.headerTitle}>Цэнэглэх</Text>
           <View style={{ width: 40 }} />
-        </LinearGradient>
+        </View>
 
-        <ScrollView 
-          style={styles.scrollView} 
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
+        {/* ── Scrollable content ── */}
+        <ScrollView
+          style={s.flex}
+          contentContainerStyle={s.scroll}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {/* Balance Card */}
-          <LinearGradient
-            colors={[COLORS.success, COLORS.successLight]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.balanceCard}
-          >
-            <View style={styles.balanceCardInner}>
-              <Icon name="wallet" size={32} color={COLORS.white} />
-              <View style={styles.balanceContent}>
-                <Text style={styles.balanceLabel}>Одоогийн үлдэгдэл</Text>
-                <Text style={styles.balanceAmount}>
-                  {formatMoney(wallet?.balance || 0)}₮
-                </Text>
-              </View>
-            </View>
-          </LinearGradient>
+          {/* Balance chip */}
+          <View style={s.balChip}>
+            <View style={s.dot} />
+            <Text style={s.balTxt}>Үлдэгдэл: <Text style={s.balAmt}>{formatMoney(balance)}₮</Text></Text>
+          </View>
 
-          {/* Warning Card */}
-          <Card variant="glass" style={styles.warningCard}>
-            <View style={styles.warningHeader}>
-              <Icon name="information-circle" size={24} color={COLORS.warning} />
-              <Text style={styles.warningTitle}>Анхааруулга</Text>
-            </View>
-            <Text style={styles.warningText}>
-              Энэ нь test цэнэглэлт функц юм. Production дээр төлбөрийн системтэй холбогдоно.
+          {/* Big input */}
+          <TouchableOpacity activeOpacity={1} onPress={() => inputRef.current?.focus()} style={s.inputBlock}>
+            <Text style={s.inputLabel}>ДҮНГЭЭ ОРУУЛНА УУ</Text>
+
+            <Animated.View style={[s.inputRow, { transform: [{ translateX: shakeAnim }] }]}>
+              <TextInput
+                ref={inputRef}
+                value={displayValue}
+                onChangeText={handleChange}
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor="#D1D1D6"
+                style={s.inputNum}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                selectionColor={COLORS.primary || '#7C6EFF'}
+                maxLength={13}
+              />
+              <Text style={s.inputCur}>₮</Text>
+            </Animated.View>
+
+            <View style={[s.inputLine, focused && s.inputLineFocused]} />
+
+            <Text style={[s.hint, !isValid && raw.length > 0 && s.hintError]}>
+              {!raw ? 'Хамгийн бага 10,000₮' : !isValid ? 'Хамгийн бага дүн 10,000₮' : `Цэнэглэсний дараа → ${formatMoney(after)}₮`}
             </Text>
-          </Card>
+          </TouchableOpacity>
 
-          {/* Amount Input */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Цэнэглэх дүн</Text>
-            <Input
-              placeholder="Дүн оруулах"
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
-              suffix="₮"
-            />
+          {/* Quick add */}
+          <View style={s.quickRow}>
+            {QUICK.map((v) => (
+              <TouchableOpacity key={v} onPress={() => addQuick(v)} style={s.quickBtn} activeOpacity={0.7}>
+                <Text style={s.quickTxt}>+{v >= 1000000 ? '1М' : `${v / 1000}К`}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
-          {/* Quick Amounts */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Түргэн сонголт</Text>
-            <View style={styles.quickAmounts}>
-              {quickAmounts.map((quickAmount) => (
-                <TouchableOpacity
-                  key={quickAmount}
-                  onPress={() => setAmount(quickAmount.toString())}
-                  activeOpacity={0.7}
-                  style={styles.quickAmountWrapper}
-                >
-                  <LinearGradient
-                    colors={[COLORS.glass, COLORS.glassHighlight]}
-                    style={styles.quickAmountButton}
-                  >
-                    <Text style={styles.quickAmountText}>
-                      {formatMoney(quickAmount)}₮
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              ))}
+          {/* Summary — only when valid */}
+          {isValid && (
+            <View style={s.summary}>
+              <View style={s.sumRow}>
+                <Text style={s.sumLabel}>Одоогийн үлдэгдэл</Text>
+                <Text style={s.sumVal}>{formatMoney(balance)}₮</Text>
+              </View>
+              <View style={s.sumRow}>
+                <Text style={s.sumLabel}>Нэмэгдэх дүн</Text>
+                <Text style={[s.sumVal, s.sumPos]}>+{formatMoney(amount)}₮</Text>
+              </View>
+              <View style={s.sumDivider} />
+              <View style={s.sumRow}>
+                <Text style={s.sumTotalLabel}>Шинэ үлдэгдэл</Text>
+                <Text style={s.sumTotalVal}>{formatMoney(after)}₮</Text>
+              </View>
             </View>
-          </View>
-
-          {/* Summary */}
-          {amount && parseFloat(amount) >= MIN_DEPOSIT_AMOUNT && (
-            <Card variant="gradient" style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>Нэгтгэл</Text>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Цэнэглэх дүн:</Text>
-                <Text style={styles.summaryValue}>
-                  {formatMoney(parseFloat(amount))}₮
-                </Text>
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabelTotal}>Шинэ үлдэгдэл:</Text>
-                <Text style={styles.summaryValueTotal}>
-                  {formatMoney((wallet?.balance || 0) + parseFloat(amount))}₮
-                </Text>
-              </View>
-            </Card>
           )}
-
-          <Button
-            title="Цэнэглэх"
-            onPress={handleDeposit}
-            loading={loading}
-            style={styles.depositButton}
-            disabled={!amount || parseFloat(amount) < MIN_DEPOSIT_AMOUNT}
-          />
         </ScrollView>
+
+        {/* ── CTA — OUTSIDE ScrollView, always visible ── */}
+        <View style={s.ctaWrap}>
+          <TouchableOpacity onPress={handleDeposit} disabled={loading} activeOpacity={0.88}>
+            <LinearGradient
+              colors={isValid ? [COLORS.gradientStart || '#7C6EFF', COLORS.gradientMiddle || '#9F8FFF'] : ['#E5E5EA', '#E5E5EA']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={s.cta}
+            >
+              <Text style={[s.ctaTxt, !isValid && s.ctaTxtDisabled]}>
+                {loading ? 'Цэнэглэж байна...' : isValid ? `${formatMoney(amount)}₮  нэмэх` : 'Цэнэглэх'}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
       </KeyboardAvoidingView>
 
       <CustomAlert
         visible={alertVisible}
         onClose={() => setAlertVisible(false)}
         title="Цэнэглэх"
-        message={`${formatMoney(parseFloat(amount || 0))}₮ цэнэглэх үү?\n\nЭнэ нь test цэнэглэлт.`}
+        message={`${formatMoney(amount)}₮ нэмэх үү?`}
         type="info"
         buttons={[
           { text: 'Болих', style: 'cancel' },
-          { text: 'Цэнэглэх', onPress: confirmDeposit }
+          { text: 'Тийм', onPress: confirm },
         ]}
       />
     </SafeAreaView>
   );
-};
+}
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#FAFAFA' },
+  flex: { flex: 1 },
+
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 20,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 12,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.glass,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#F2F2F7', alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 150,
-  },
-  balanceCard: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: COLORS.success,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  balanceCardInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  balanceContent: {
-    marginLeft: 16,
-  },
-  balanceLabel: {
-    fontSize: 13,
-    color: COLORS.white,
-    opacity: 0.9,
-    marginBottom: 4,
-  },
-  balanceAmount: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: COLORS.white,
-  },
-  warningCard: {
-    marginBottom: 24,
-  },
-  warningHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  warningTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginLeft: 12,
-  },
-  warningText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: 12,
-  },
-  quickAmounts: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -6,
-  },
-  quickAmountWrapper: {
-    width: '50%',
-    paddingHorizontal: 6,
-    marginBottom: 12,
-  },
-  quickAmountButton: {
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-  },
-  quickAmountText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  summaryCard: {
-    marginBottom: 24,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: 16,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-  },
-  summaryValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: 12,
-  },
-  summaryLabelTotal: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  summaryValueTotal: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: COLORS.success,
-  },
-  depositButton: {
-    marginBottom: 24,
-  },
-});
+  headerTitle: { fontSize: 17, fontWeight: '700', color: '#1C1C1E' },
 
-export default DepositScreen;
+  scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16 },
+
+  balChip: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#F2F2F7', alignSelf: 'flex-start',
+    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 40,
+  },
+  dot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#34C759', marginRight: 7 },
+  balTxt: { fontSize: 13, color: '#8E8E93' },
+  balAmt: { fontWeight: '700', color: '#1C1C1E' },
+
+  inputBlock: { marginBottom: 24 },
+  inputLabel: { fontSize: 11, fontWeight: '700', color: '#AEAEB2', letterSpacing: 1.2, marginBottom: 18 },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
+  inputNum: {
+    fontSize: 52, fontWeight: '700', color: '#1C1C1E',
+    letterSpacing: -1.5, flex: 1,
+    paddingVertical: 0, includeFontPadding: false,
+  },
+  inputCur: { fontSize: 28, fontWeight: '600', color: '#AEAEB2', paddingBottom: 7 },
+  inputLine: { height: 2, borderRadius: 1, backgroundColor: '#E5E5EA', marginTop: 14 },
+  inputLineFocused: { backgroundColor: COLORS.primary || '#7C6EFF' },
+  hint: { fontSize: 13, color: '#AEAEB2', marginTop: 10 },
+  hintError: { color: '#FF3B30' },
+
+  quickRow: { flexDirection: 'row', gap: 10, marginBottom: 36 },
+  quickBtn: {
+    flex: 1, paddingVertical: 12, borderRadius: 12,
+    backgroundColor: '#F2F2F7', alignItems: 'center',
+  },
+  quickTxt: { fontSize: 14, fontWeight: '700', color: COLORS.primary || '#7C6EFF' },
+
+  summary: { backgroundColor: '#fff', borderRadius: 16, padding: 18, borderWidth: 1, borderColor: '#F2F2F7' },
+  sumRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 11 },
+  sumLabel: { fontSize: 15, color: '#8E8E93' },
+  sumVal: { fontSize: 15, fontWeight: '600', color: '#1C1C1E' },
+  sumPos: { color: '#34C759' },
+  sumDivider: { height: 1, backgroundColor: '#F2F2F7' },
+  sumTotalLabel: { fontSize: 16, fontWeight: '700', color: '#1C1C1E' },
+  sumTotalVal: { fontSize: 20, fontWeight: '800', color: COLORS.primary || '#7C6EFF' },
+
+  // CTA always visible at bottom
+  ctaWrap: { paddingHorizontal: 24, paddingVertical: 16, backgroundColor: '#FAFAFA' },
+  cta: { borderRadius: 16, paddingVertical: 17, alignItems: 'center' },
+  ctaTxt: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  ctaTxtDisabled: { color: '#AEAEB2' },
+});

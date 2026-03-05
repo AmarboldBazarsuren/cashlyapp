@@ -1,9 +1,11 @@
 /**
- * FIXED Input Component - Keyboard issue completely resolved
+ * Input Component - ANDROID FIXED
+ * ✅ Keyboard дээр input харагдах
+ * ✅ Android-д зориулсан тохиргоо
  */
 
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { COLORS } from '../../constants/colors';
 
 const Input = ({
@@ -25,18 +27,12 @@ const Input = ({
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef(null);
 
-  // Fix keyboard issue - use Pressable to focus
-  const handleContainerPress = () => {
-    if (inputRef.current && editable) {
-      inputRef.current.focus();
-    }
-  };
-
   return (
     <View style={[styles.container, style]}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <Pressable
-        onPress={handleContainerPress}
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={() => editable && inputRef.current?.focus()}
         style={[
           styles.inputContainer,
           isFocused && styles.inputContainerFocused,
@@ -62,10 +58,12 @@ const Input = ({
           autoCorrect={false}
           autoCapitalize="none"
           underlineColorAndroid="transparent"
+          textAlignVertical={multiline ? 'top' : 'center'}
+          importantForAutofill="no"
           {...props}
         />
         {suffix && <Text style={styles.suffix}>{suffix}</Text>}
-      </Pressable>
+      </TouchableOpacity>
       {error && <Text style={styles.error}>{error}</Text>}
     </View>
   );
@@ -73,33 +71,33 @@ const Input = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.textSecondary,
-    marginBottom: 10,
-    letterSpacing: 0.5,
+    marginBottom: 8,
+    letterSpacing: 0.3,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.glass,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
     borderRadius: 14,
-    paddingHorizontal: 16,
-    minHeight: 56,
+    paddingHorizontal: 14,
+    minHeight: 52,
   },
   inputContainerFocused: {
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.glassHighlight,
+    backgroundColor: '#FAFAFE',
+    elevation: 2,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
   inputContainerError: {
     borderColor: COLORS.danger,
@@ -112,17 +110,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textPrimary,
     paddingVertical: 12,
+    paddingHorizontal: 0,
+    margin: 0,
+    minHeight: 48,
   },
   inputMultiline: {
     minHeight: 100,
-    textAlignVertical: 'top',
     paddingTop: 12,
   },
   prefix: {
     fontSize: 16,
     color: COLORS.textSecondary,
     marginRight: 8,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   suffix: {
     fontSize: 16,
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 12,
     color: COLORS.danger,
-    marginLeft: 4,
+    marginLeft: 2,
   },
 });
 

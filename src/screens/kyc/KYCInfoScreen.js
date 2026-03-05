@@ -1,16 +1,13 @@
 /**
- * KYCInfoScreen.js - COMPLETE MULTI-STEP VERSION
- * ✅ 7 алхамтай форм (step бүрт validation)
- * ✅ Дараагийн/Өмнөх товч
- * ✅ Сүүлийн алхам: "Мэдээлэл илгээх"
- * ✅ Navigation warning
- * ✅ Status: not_submitted → pending
+ * KYCInfoScreen.js - ANDROID KEYBOARD FIXED
+ * ✅ KeyboardAvoidingView зөв ажиллана
+ * ✅ Input keyboard ард нуугдахгүй
  */
 
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  SafeAreaView, StatusBar, Platform, TextInput, KeyboardAvoidingView, Alert, Modal,
+  SafeAreaView, StatusBar, Platform, TextInput, Alert, Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,8 +20,8 @@ import { COLORS } from '../../constants/colors';
 import { BANKS, EDUCATION_LEVELS, EMPLOYMENT_STATUS } from '../../constants/config';
 
 const MONGOLIAN_LETTERS = [
-  'А', 'Б', 'В', 'Г', 'Д', 'Е', 'Ё', 'Ж', 'З', 'И', 'Й', 'К', 'Л', 'М',
-  'Н', 'О', 'Ө', 'П', 'Р', 'С', 'Т', 'У', 'Ү', 'Ф', 'Х', 'Ц', 'Ч', 'Ш', 'Щ', 'Ъ', 'Ы', 'Ь', 'Э', 'Ю', 'Я'
+  'А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М',
+  'Н','О','Ө','П','Р','С','Т','У','Ү','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я',
 ];
 
 const STEPS = [
@@ -45,7 +42,6 @@ export default function KYCInfoScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Modals
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showLetterModal, setShowLetterModal] = useState(null);
   const [showGenderModal, setShowGenderModal] = useState(false);
@@ -87,14 +83,10 @@ export default function KYCInfoScreen({ navigation }) {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
       if (!hasUnsavedChanges) return;
       e.preventDefault();
-      Alert.alert(
-        'Хадгалаагүй өөрчлөлт',
-        'Таны оруулсан мэдээлэл хадгалагдаагүй байна. Гарах уу?',
-        [
-          { text: 'Үргэлжлүүлэх', style: 'cancel' },
-          { text: 'Гарах', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
-        ]
-      );
+      Alert.alert('Хадгалаагүй өөрчлөлт', 'Таны оруулсан мэдээлэл хадгалагдаагүй байна. Гарах уу?', [
+        { text: 'Үргэлжлүүлэх', style: 'cancel' },
+        { text: 'Гарах', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
+      ]);
     });
     return unsubscribe;
   }, [navigation, hasUnsavedChanges]);
@@ -133,7 +125,6 @@ export default function KYCInfoScreen({ navigation }) {
     }
   };
 
-  // ✅ VALIDATION - Алхам бүрийн бөглөсөн эсэхийг шалгах
   const isStepValid = (stepId) => {
     switch (stepId) {
       case 'personal':
@@ -156,19 +147,14 @@ export default function KYCInfoScreen({ navigation }) {
   };
 
   const handleNext = () => {
-    if (activeStepIndex < STEPS.length - 1) {
-      setActiveStepIndex(activeStepIndex + 1);
-    }
+    if (activeStepIndex < STEPS.length - 1) setActiveStepIndex(activeStepIndex + 1);
   };
 
   const handlePrev = () => {
-    if (activeStepIndex > 0) {
-      setActiveStepIndex(activeStepIndex - 1);
-    }
+    if (activeStepIndex > 0) setActiveStepIndex(activeStepIndex - 1);
   };
 
   const handleSubmit = async () => {
-    // ✅ Бүх алхам бөглөгдсөн эсэхийг шалгах
     for (let i = 0; i < STEPS.length; i++) {
       if (!isStepValid(STEPS[i].id)) {
         Toast.show({ type: 'error', text1: `"${STEPS[i].title}" алхамыг бөглөнө үү` });
@@ -179,7 +165,6 @@ export default function KYCInfoScreen({ navigation }) {
 
     setLoading(true);
     try {
-      // Step 1: Хувийн мэдээлэл илгээх (зургагүйгээр)
       const personalInfoPayload = {
         lastName: formData.lastName,
         firstName: formData.firstName,
@@ -214,47 +199,21 @@ export default function KYCInfoScreen({ navigation }) {
         return;
       }
 
-      // Step 2: Зургуудыг upload хийх
-      console.log('📤 Starting image uploads...');
-      
       const idFrontRes = await uploadDocument('idCardFront', formData.idCardFront);
-      console.log('📸 ID Front Response:', JSON.stringify(idFrontRes, null, 2));
-      
       const idBackRes = await uploadDocument('idCardBack', formData.idCardBack);
-      console.log('📸 ID Back Response:', JSON.stringify(idBackRes, null, 2));
-      
       const selfieRes = await uploadDocument('selfie', formData.selfie);
-      console.log('📸 Selfie Response:', JSON.stringify(selfieRes, null, 2));
 
-      // ✅ URL гаргах (axios interceptor response.data буцаадаг)
       const idFrontUrl = idFrontRes?.data?.url;
       const idBackUrl = idBackRes?.data?.url;
       const selfieUrl = selfieRes?.data?.url;
 
-      console.log('📋 Extracted URLs:', { idFrontUrl, idBackUrl, selfieUrl });
-
-      // Validation: Бүх зураг URL байгаа эсэхийг шалгах
       if (!idFrontUrl || !idBackUrl || !selfieUrl) {
-        console.error('❌ Missing URLs:', { idFrontUrl, idBackUrl, selfieUrl });
         Toast.show({ type: 'error', text1: 'Зураг upload хийгдээгүй байна' });
         setLoading(false);
         return;
       }
 
-      // Step 3: KYC илгээх (зургууд хамт)
-      const kycPayload = {
-        idCardFront: idFrontUrl,
-        idCardBack: idBackUrl,
-        selfie: selfieUrl,
-      };
-
-      console.log('📤 Submitting KYC payload:', kycPayload);
-      console.log('📤 Payload type:', typeof kycPayload);
-      console.log('📤 Payload keys:', Object.keys(kycPayload));
-      console.log('📤 Payload values:', Object.values(kycPayload));
-
-      const res2 = await submitKYC(kycPayload);
-      console.log('✅ submitKYC response:', res2);
+      const res2 = await submitKYC({ idCardFront: idFrontUrl, idCardBack: idBackUrl, selfie: selfieUrl });
 
       if (res2.success) {
         Toast.show({ type: 'success', text1: 'Амжилттай илгээгдлээ!' });
@@ -294,20 +253,21 @@ export default function KYCInfoScreen({ navigation }) {
                   onChangeText={(v) => handleInputChange('registerNumber', v.replace(/[^0-9]/g, ''))}
                   keyboardType="numeric"
                   maxLength={8}
+                  underlineColorAndroid="transparent"
                 />
               </View>
             </View>
             <TouchableOpacity style={styles.fieldRow} onPress={() => setShowGenderModal(true)}>
               <Text style={styles.fieldLabel}>Хүйс *</Text>
               <View style={styles.fieldInputWrap}>
-                <Text style={styles.fieldInput}>{formData.gender || 'Сонгох'}</Text>
+                <Text style={styles.fieldInputText}>{formData.gender || 'Сонгох'}</Text>
                 <Ionicons name="chevron-down" size={16} color="#ccc" />
               </View>
             </TouchableOpacity>
             <TouchableOpacity style={styles.fieldRow} onPress={() => setShowDatePicker(true)}>
               <Text style={styles.fieldLabel}>Төрсөн огноо *</Text>
               <View style={styles.fieldInputWrap}>
-                <Text style={styles.fieldInput}>{formData.birthDate || 'YYYY-MM-DD'}</Text>
+                <Text style={styles.fieldInputText}>{formData.birthDate || 'YYYY-MM-DD'}</Text>
                 <Ionicons name="calendar-outline" size={16} color="#ccc" />
               </View>
             </TouchableOpacity>
@@ -321,21 +281,20 @@ export default function KYCInfoScreen({ navigation }) {
             )}
           </>
         );
-
       case 'employment':
         return (
           <>
             <TouchableOpacity style={styles.fieldRow} onPress={() => setShowEducationModal(true)}>
               <Text style={styles.fieldLabel}>Боловсрол *</Text>
               <View style={styles.fieldInputWrap}>
-                <Text style={styles.fieldInput}>{formData.education || 'Сонгох'}</Text>
+                <Text style={styles.fieldInputText}>{formData.education || 'Сонгох'}</Text>
                 <Ionicons name="chevron-down" size={16} color="#ccc" />
               </View>
             </TouchableOpacity>
             <TouchableOpacity style={styles.fieldRow} onPress={() => setShowEmploymentModal(true)}>
               <Text style={styles.fieldLabel}>Ажлын байдал *</Text>
               <View style={styles.fieldInputWrap}>
-                <Text style={styles.fieldInput}>{formData.employmentStatus || 'Сонгох'}</Text>
+                <Text style={styles.fieldInputText}>{formData.employmentStatus || 'Сонгох'}</Text>
                 <Ionicons name="chevron-down" size={16} color="#ccc" />
               </View>
             </TouchableOpacity>
@@ -343,17 +302,15 @@ export default function KYCInfoScreen({ navigation }) {
             <FieldRow label="Албан тушаал" value={formData.position} onChangeText={(v) => handleInputChange('position', v)} />
           </>
         );
-
       case 'income':
         return <FieldRow label="Сарын орлого (₮) *" value={formData.monthlyIncome} onChangeText={(v) => handleInputChange('monthlyIncome', v)} keyboardType="numeric" />;
-
       case 'bank':
         return (
           <>
             <TouchableOpacity style={styles.fieldRow} onPress={() => setShowBankModal(true)}>
               <Text style={styles.fieldLabel}>Банк *</Text>
               <View style={styles.fieldInputWrap}>
-                <Text style={styles.fieldInput}>{formData.bankName || 'Сонгох'}</Text>
+                <Text style={styles.fieldInputText}>{formData.bankName || 'Сонгох'}</Text>
                 <Ionicons name="chevron-down" size={16} color="#ccc" />
               </View>
             </TouchableOpacity>
@@ -361,7 +318,6 @@ export default function KYCInfoScreen({ navigation }) {
             <FieldRow label="Дансны нэр *" value={formData.accountName} onChangeText={(v) => handleInputChange('accountName', v)} />
           </>
         );
-
       case 'address':
         return (
           <>
@@ -373,7 +329,6 @@ export default function KYCInfoScreen({ navigation }) {
             <FieldRow label="Бүтэн хаяг" value={formData.fullAddress} onChangeText={(v) => handleInputChange('fullAddress', v)} multiline />
           </>
         );
-
       case 'emergency':
         return (
           <>
@@ -382,7 +337,6 @@ export default function KYCInfoScreen({ navigation }) {
             <FieldRow label="Утас (8 орон) *" value={formData.emergencyPhone} onChangeText={(v) => handleInputChange('emergencyPhone', v.replace(/[^0-9]/g, ''))} keyboardType="phone-pad" maxLength={8} />
           </>
         );
-
       case 'documents':
         return (
           <>
@@ -398,7 +352,6 @@ export default function KYCInfoScreen({ navigation }) {
             ))}
           </>
         );
-
       default:
         return null;
     }
@@ -419,58 +372,69 @@ export default function KYCInfoScreen({ navigation }) {
         <View style={{ width: 36 }} />
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          {/* Steps */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stepsRow}>
-            {STEPS.map((step, i) => (
-              <TouchableOpacity
-                key={step.id}
-                style={[styles.stepChip, activeStepIndex === i && styles.stepChipActive]}
-                onPress={() => setActiveStepIndex(i)}
-              >
-                <Ionicons name={step.icon} size={14} color={activeStepIndex === i ? '#fff' : '#999'} />
-                <Text style={[styles.stepChipText, activeStepIndex === i && { color: '#fff' }]}>{step.title}</Text>
+      {/* Steps scroll */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.stepsRow}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 6 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {STEPS.map((step, i) => (
+          <TouchableOpacity
+            key={step.id}
+            style={[styles.stepChip, activeStepIndex === i && styles.stepChipActive]}
+            onPress={() => setActiveStepIndex(i)}
+          >
+            <Ionicons name={step.icon} size={13} color={activeStepIndex === i ? '#fff' : '#999'} />
+            <Text style={[styles.stepChipText, activeStepIndex === i && { color: '#fff' }]}>{step.title}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Main content - ScrollView with keyboardShouldPersistTaps */}
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.mainCard}>
+          {renderContent()}
+
+          <View style={styles.navRow}>
+            {activeStepIndex > 0 && (
+              <TouchableOpacity style={styles.navBtn} onPress={handlePrev}>
+                <Text style={styles.navBtnText}>Өмнөх</Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+            )}
 
-          <View style={styles.mainCard}>
-            {renderContent()}
-
-            {/* Navigation Buttons */}
-            <View style={styles.navRow}>
-              {activeStepIndex > 0 && (
-                <TouchableOpacity style={styles.navBtn} onPress={handlePrev}>
-                  <Text style={styles.navBtnText}>Өмнөх</Text>
-                </TouchableOpacity>
-              )}
-
-              {!isLastStep ? (
-                <TouchableOpacity
-                  style={[styles.navBtn, styles.navBtnPrimary, !currentStepValid && styles.navBtnDisabled]}
-                  onPress={handleNext}
-                  disabled={!currentStepValid}
-                >
-                  <LinearGradient colors={currentStepValid ? ['#6C63FF', '#4ECDC4'] : ['#ddd', '#ccc']} style={styles.navBtnGradient}>
-                    <Text style={styles.navBtnTextPrimary}>Дараагийн</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={[styles.navBtn, styles.navBtnPrimary, (!currentStepValid || loading) && styles.navBtnDisabled]}
-                  onPress={handleSubmit}
-                  disabled={!currentStepValid || loading}
-                >
-                  <LinearGradient colors={currentStepValid && !loading ? ['#6C63FF', '#4ECDC4'] : ['#ddd', '#ccc']} style={styles.navBtnGradient}>
-                    <Text style={styles.navBtnTextPrimary}>{loading ? 'Илгээж байна...' : 'Мэдээлэл илгээх'}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-            </View>
+            {!isLastStep ? (
+              <TouchableOpacity
+                style={[styles.navBtn, styles.navBtnPrimary, !currentStepValid && styles.navBtnDisabled]}
+                onPress={handleNext}
+                disabled={!currentStepValid}
+              >
+                <LinearGradient colors={currentStepValid ? ['#6C63FF', '#4ECDC4'] : ['#ddd', '#ccc']} style={styles.navBtnGradient}>
+                  <Text style={styles.navBtnTextPrimary}>Дараагийн</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.navBtn, styles.navBtnPrimary, (!currentStepValid || loading) && styles.navBtnDisabled]}
+                onPress={handleSubmit}
+                disabled={!currentStepValid || loading}
+              >
+                <LinearGradient colors={currentStepValid && !loading ? ['#6C63FF', '#4ECDC4'] : ['#ddd', '#ccc']} style={styles.navBtnGradient}>
+                  <Text style={styles.navBtnTextPrimary}>{loading ? 'Илгээж байна...' : 'Мэдээлэл илгээх'}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
+        <View style={{ height: 120 }} />
+      </ScrollView>
 
       {/* Modals */}
       <SelectModal visible={showLetterModal !== null} title="Үсэг сонгох" items={MONGOLIAN_LETTERS} onSelect={(item) => selectLetter(showLetterModal === 'first' ? 1 : 2, item)} onClose={() => setShowLetterModal(null)} />
@@ -486,7 +450,7 @@ const FieldRow = ({ label, value, onChangeText, keyboardType, maxLength, multili
   <View style={styles.fieldRow}>
     <Text style={styles.fieldLabel}>{label}</Text>
     <TextInput
-      style={[styles.fieldInput, multiline && { height: 80, textAlignVertical: 'top' }]}
+      style={[styles.fieldInputNative, multiline && { height: 80, textAlignVertical: 'top' }]}
       placeholder={label}
       placeholderTextColor="#bbb"
       value={value}
@@ -494,6 +458,7 @@ const FieldRow = ({ label, value, onChangeText, keyboardType, maxLength, multili
       keyboardType={keyboardType}
       maxLength={maxLength}
       multiline={multiline}
+      underlineColorAndroid="transparent"
     />
   </View>
 );
@@ -508,7 +473,7 @@ const SelectModal = ({ visible, title, items, onSelect, onClose }) => (
             <Ionicons name="close" size={24} color="#333" />
           </TouchableOpacity>
         </View>
-        <ScrollView style={styles.modalScroll}>
+        <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
           {items.map((item) => (
             <TouchableOpacity key={item} style={styles.modalItem} onPress={() => onSelect(item)}>
               <Text style={styles.modalItemText}>{item}</Text>
@@ -522,22 +487,24 @@ const SelectModal = ({ visible, title, items, onSelect, onClose }) => (
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#f5f6fa' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 },
+  flex: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 10 },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '700', color: '#1a1a2e' },
+  stepsRow: { flexGrow: 0, marginBottom: 4 },
   scroll: { paddingHorizontal: 16, paddingBottom: 40 },
-  stepsRow: { marginBottom: 16 },
-  stepChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, backgroundColor: '#fff', marginRight: 6 },
+  stepChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 20, backgroundColor: '#fff', marginRight: 6 },
   stepChipActive: { backgroundColor: '#6C63FF' },
   stepChipText: { fontSize: 11, color: '#999', fontWeight: '600' },
   mainCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20 },
-  fieldRow: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
+  fieldRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
   fieldLabel: { fontSize: 12, color: '#888', fontWeight: '600', marginBottom: 6 },
-  fieldInput: { fontSize: 15, color: '#1a1a2e', fontWeight: '500', paddingVertical: 2 },
+  fieldInputNative: { fontSize: 15, color: '#1a1a2e', fontWeight: '500', paddingVertical: 4, minHeight: 36 },
+  fieldInputText: { fontSize: 15, color: '#1a1a2e', fontWeight: '500' },
   fieldInputWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  letterBtn: { width: 50, height: 50, borderRadius: 10, backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center' },
+  letterBtn: { width: 48, height: 48, borderRadius: 10, backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center' },
   letterBtnText: { fontSize: 20, fontWeight: '700', color: '#333' },
-  registerInput: { flex: 1, height: 50, borderRadius: 10, backgroundColor: '#f0f0f0', paddingHorizontal: 12, fontSize: 15, fontWeight: '500' },
+  registerInput: { flex: 1, height: 48, borderRadius: 10, backgroundColor: '#f0f0f0', paddingHorizontal: 12, fontSize: 15, fontWeight: '500', underlineColorAndroid: 'transparent' },
   uploadBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 16, backgroundColor: '#f0f0f0', borderRadius: 12, paddingHorizontal: 16, marginBottom: 12 },
   uploadBtnText: { fontSize: 14, fontWeight: '600', color: '#333' },
   navRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
