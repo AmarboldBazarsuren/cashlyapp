@@ -1,11 +1,13 @@
 /**
  * Auth Context - Хэрэглэгчийн authentication
  * БАЙРШИЛ: Cashly.mn/App/src/context/AuthContext.js
+ * ✅ PUSH NOTIFICATION FCM TOKEN НЭМСЭН
  */
 
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { login as loginService, register as registerService } from '../services/authService';
+import { registerForPushNotifications } from '../services/notificationSetup';
 
 const AuthContext = createContext();
 
@@ -48,6 +50,11 @@ export const AuthProvider = ({ children }) => {
         
         setToken(userToken);
         setUser(userData);
+
+        // ✅ FCM token бүртгүүлэх (нэвтэрсний дараа)
+        setTimeout(() => {
+          registerForPushNotifications();
+        }, 1000);
         
         return { success: true };
       }
@@ -71,6 +78,11 @@ export const AuthProvider = ({ children }) => {
         
         setToken(userToken);
         setUser(userData);
+
+        // ✅ FCM token бүртгүүлэх (бүртгүүлсний дараа)
+        setTimeout(() => {
+          registerForPushNotifications();
+        }, 1000);
         
         return { success: true };
       }
@@ -86,7 +98,8 @@ export const AuthProvider = ({ children }) => {
     try {
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
-      
+      await AsyncStorage.removeItem('fcmToken'); // ✅ FCM token ч арилгана
+
       setToken(null);
       setUser(null);
     } catch (error) {
