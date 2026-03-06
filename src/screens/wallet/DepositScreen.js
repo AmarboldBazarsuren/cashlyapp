@@ -1,7 +1,6 @@
 /**
  * DepositScreen — Minimal
- * ✅ CTA button ScrollView-с гадна → үргэлж харагдана
- * ✅ deposit() функц
+ * ✅ Хамгийн бага цэнэглэх дүн: 1,000₮
  */
 
 import React, { useState, useRef } from 'react';
@@ -20,7 +19,8 @@ import CustomAlert from '../../components/common/CustomAlert';
 import { COLORS } from '../../constants/colors';
 import { formatMoney } from '../../utils/formatters';
 
-const QUICK = [10000, 50000, 100000, 500000];
+const MIN_DEPOSIT = 1000;
+const QUICK = [5000, 10000, 50000, 100000];
 
 export default function DepositScreen({ navigation }) {
   const { wallet, setWallet } = useApp();
@@ -33,7 +33,7 @@ export default function DepositScreen({ navigation }) {
 
   const balance = wallet?.balance ?? 0;
   const amount = parseInt(raw.replace(/\D/g, ''), 10) || 0;
-  const isValid = amount >= 10000;
+  const isValid = amount >= MIN_DEPOSIT;
   const after = balance + amount;
 
   const handleChange = (text) => setRaw(text.replace(/\D/g, ''));
@@ -51,7 +51,11 @@ export default function DepositScreen({ navigation }) {
   ]).start();
 
   const handleDeposit = () => {
-    if (!isValid) { shake(); Toast.show({ type: 'error', text1: 'Хамгийн бага дүн 10,000₮' }); return; }
+    if (!isValid) {
+      shake();
+      Toast.show({ type: 'error', text1: `Хамгийн бага дүн ${formatMoney(MIN_DEPOSIT)}₮` });
+      return;
+    }
     setAlertVisible(true);
   };
 
@@ -81,7 +85,7 @@ export default function DepositScreen({ navigation }) {
 
       <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 
-        {/* ── Header ── */}
+        {/* Header */}
         <View style={s.header}>
           <TouchableOpacity onPress={goBack} style={s.backBtn}>
             <Ionicons name="chevron-back" size={20} color="#1C1C1E" />
@@ -90,7 +94,6 @@ export default function DepositScreen({ navigation }) {
           <View style={{ width: 40 }} />
         </View>
 
-        {/* ── Scrollable content ── */}
         <ScrollView
           style={s.flex}
           contentContainerStyle={s.scroll}
@@ -127,7 +130,11 @@ export default function DepositScreen({ navigation }) {
             <View style={[s.inputLine, focused && s.inputLineFocused]} />
 
             <Text style={[s.hint, !isValid && raw.length > 0 && s.hintError]}>
-              {!raw ? 'Хамгийн бага 10,000₮' : !isValid ? 'Хамгийн бага дүн 10,000₮' : `Цэнэглэсний дараа → ${formatMoney(after)}₮`}
+              {!raw
+                ? `Хамгийн бага ${formatMoney(MIN_DEPOSIT)}₮`
+                : !isValid
+                ? `Хамгийн бага дүн ${formatMoney(MIN_DEPOSIT)}₮`
+                : `Цэнэглэсний дараа → ${formatMoney(after)}₮`}
             </Text>
           </TouchableOpacity>
 
@@ -135,7 +142,9 @@ export default function DepositScreen({ navigation }) {
           <View style={s.quickRow}>
             {QUICK.map((v) => (
               <TouchableOpacity key={v} onPress={() => addQuick(v)} style={s.quickBtn} activeOpacity={0.7}>
-                <Text style={s.quickTxt}>+{v >= 1000000 ? '1М' : `${v / 1000}К`}</Text>
+                <Text style={s.quickTxt}>
+                  +{v >= 1000000 ? '1М' : v >= 1000 ? `${v / 1000}К` : v}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -160,7 +169,7 @@ export default function DepositScreen({ navigation }) {
           )}
         </ScrollView>
 
-        {/* ── CTA — OUTSIDE ScrollView, always visible ── */}
+        {/* CTA — OUTSIDE ScrollView, always visible */}
         <View style={s.ctaWrap}>
           <TouchableOpacity onPress={handleDeposit} disabled={loading} activeOpacity={0.88}>
             <LinearGradient
@@ -247,7 +256,6 @@ const s = StyleSheet.create({
   sumTotalLabel: { fontSize: 16, fontWeight: '700', color: '#1C1C1E' },
   sumTotalVal: { fontSize: 20, fontWeight: '800', color: COLORS.primary || '#7C6EFF' },
 
-  // CTA always visible at bottom
   ctaWrap: { paddingHorizontal: 24, paddingVertical: 16, backgroundColor: '#FAFAFA' },
   cta: { borderRadius: 16, paddingVertical: 17, alignItems: 'center' },
   ctaTxt: { fontSize: 17, fontWeight: '700', color: '#fff' },

@@ -1,17 +1,14 @@
 /**
- * Premium Loan Details Screen
- * ✅ 2025 ХУУЛИЙН ДАГУУ ШИНЭЧЛЭГДСЭН:
- *  - Сунгалтын хураамж = principal × 10% харуулах
- *  - Үлдсэн сунгалтын тоо: 4 - extensionCount
- *  - Late fee (хугацаа хэтэрсэн торгууль) тусад нь харуулах
- *  - Extension history харуулах
- *  - 7 хоногийн зээлд сунгах товч нуугдах
+ * LoanDetailsScreen.js
+ * ✅ KeyboardAvoidingView нэмсэн → "Төлбөр төлөх" button keyboard-аар хаагдахгүй
+ * ✅ 2025 хуулийн дагуу шинэчлэгдсэн
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, SafeAreaView, StatusBar,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,10 +28,10 @@ const MAX_EXTENSIONS = 4;
 const LoanDetailsScreen = ({ route, navigation }) => {
   const { loanId } = route.params;
   const { wallet, setWallet } = useApp();
-  const [loan, setLoan]         = useState(null);
-  const [loading, setLoading]   = useState(true);
+  const [loan, setLoan]               = useState(null);
+  const [loading, setLoading]         = useState(true);
   const [repayAmount, setRepayAmount] = useState('');
-  const [repaying, setRepaying] = useState(false);
+  const [repaying, setRepaying]       = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
 
   useFocusEffect(useCallback(() => { loadLoanDetails(); }, [loanId]));
@@ -90,25 +87,23 @@ const LoanDetailsScreen = ({ route, navigation }) => {
   if (loading) return <Loading />;
   if (!loan)   return null;
 
-  const canRepay         = ['active', 'extended', 'overdue'].includes(loan.status);
-  const totalDue         = loan.remainingAmount + (loan.lateFee || 0);
-  const progressPercent  = loan.totalAmount > 0
+  const canRepay            = ['active', 'extended', 'overdue'].includes(loan.status);
+  const totalDue            = loan.remainingAmount + (loan.lateFee || 0);
+  const progressPercent     = loan.totalAmount > 0
     ? Math.min(100, Math.round((loan.paidAmount / loan.totalAmount) * 100))
     : 0;
   const remainingExtensions = MAX_EXTENSIONS - (loan.extensionCount || 0);
-  // 2025: Сунгалтын хураамж = principal × 10%
-  const extensionFee     = Math.round(loan.principal * 0.10);
-  // Сунгах боломжтой эсэх
-  const canExtend = loan.term !== 7 && loan.extensionCount < MAX_EXTENSIONS && canRepay;
+  const extensionFee        = Math.round(loan.principal * 0.10);
+  const canExtend           = loan.term !== 7 && loan.extensionCount < MAX_EXTENSIONS && canRepay;
 
   const getStatusColor = () => {
     switch (loan.status) {
-      case 'active':   return COLORS.info;
-      case 'extended': return COLORS.primary;
-      case 'overdue':  return COLORS.danger;
-      case 'completed':return COLORS.success;
-      case 'pending':  return COLORS.warning;
-      default:         return COLORS.textTertiary;
+      case 'active':    return COLORS.info;
+      case 'extended':  return COLORS.primary;
+      case 'overdue':   return COLORS.danger;
+      case 'completed': return COLORS.success;
+      case 'pending':   return COLORS.warning;
+      default:          return COLORS.textTertiary;
     }
   };
   const getStatusText = () => {
@@ -123,298 +118,294 @@ const LoanDetailsScreen = ({ route, navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F2F4F9" translucent={false} />
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <SafeAreaView style={styles.safe}>
+        <StatusBar barStyle="dark-content" backgroundColor="#F2F4F9" translucent={false} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Зээлийн дэлгэрэнгүй</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-
-        {/* ── HERO ───────────────────────────────────────────────────────── */}
-        <LinearGradient
-          colors={loan.status === 'overdue' ? ['#FF6B6B', '#FF9E9E'] : ['#5B5BD6', '#22C7BE']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.heroCard}
-        >
-          <View style={styles.heroDecoA} />
-          <View style={styles.heroDecoB} />
-
-          <View style={styles.heroTop}>
-            <Text style={styles.heroLoanNumber}>{loan.loanNumber}</Text>
-            <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>{getStatusText()}</Text>
-            </View>
-          </View>
-
-          <Text style={styles.heroAmount}>{formatMoney(loan.principal)}₮</Text>
-          <Text style={styles.heroLabel}>Зээлийн үндсэн дүн</Text>
-
-          {canRepay && (
-            <View style={styles.heroProgress}>
-              <View style={styles.heroProgressBar}>
-                <View style={[styles.heroProgressFill, { width: `${progressPercent}%` }]} />
-              </View>
-              <View style={styles.heroProgressLabels}>
-                <Text style={styles.heroProgressText}>{progressPercent}% төлөгдсөн</Text>
-                <Text style={styles.heroProgressText}>Үлдэгдэл: {formatMoney(loan.remainingAmount)}₮</Text>
-              </View>
-            </View>
-          )}
-        </LinearGradient>
-
-        {/* ── САНХҮҮГИЙН НЭГТГЭЛ ─────────────────────────────────────────── */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Санхүүгийн нэгтгэл</Text>
-
-          <SummaryRow icon="cash-outline" bg="#EEEEFF" color="#5B5BD6" label="Зээлийн дүн" value={`${formatMoney(loan.principal)}₮`} />
-          <SummaryRow icon="trending-up-outline" bg="#FEF9C3" color="#EAB308"
-            label={`Хүү (4.5%/сар × ${loan.term}/30 = ${(4.5 * loan.term / 30).toFixed(2)}%)`}
-            value={`${formatMoney(loan.interestAmount)}₮`}
-          />
-          <SummaryRow icon="card-outline" bg="#E5FAFA" color="#22C7BE" label="Нийт" value={`${formatMoney(loan.totalAmount)}₮`} />
-
-          <View style={styles.divider} />
-
-          <SummaryRow icon="checkmark-circle" bg="#E8F8EE" color="#27AE60" label="Төлсөн"
-            value={`${formatMoney(loan.paidAmount)}₮`} valueColor={COLORS.success}
-          />
-          <SummaryRow icon="alert-circle" bg="#FEE2E2" color="#EF4444" label="Үлдэгдэл"
-            value={`${formatMoney(loan.remainingAmount)}₮`} valueColor={COLORS.danger} valueBold
-          />
-
-          {(loan.lateFee || 0) > 0 && (
-            <>
-              <View style={styles.divider} />
-              <View style={styles.lateFeeBox}>
-                <Ionicons name="warning" size={16} color="#EAB308" />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.lateFeeTitle}>Хугацаа хэтэрсэн торгууль</Text>
-                  <Text style={styles.lateFeeDesc}>
-                    {loan.daysOverdue || 0} хоног × (4.5% × 20% / 30) × {formatMoney(loan.principal)}₮
-                  </Text>
-                </View>
-                <Text style={styles.lateFeeAmt}>{formatMoney(loan.lateFee)}₮</Text>
-              </View>
-              <SummaryRow icon="card-outline" bg="#FEE2E2" color="#EF4444" label="Нийт төлөх (торгуультай)"
-                value={`${formatMoney(totalDue)}₮`} valueColor="#EF4444" valueBold
-              />
-            </>
-          )}
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Зээлийн дэлгэрэнгүй</Text>
+          <View style={{ width: 40 }} />
         </View>
 
-        {/* ── ОГНОО ──────────────────────────────────────────────────────── */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Огноо & Хугацаа</Text>
-          <View style={styles.dateGrid}>
-            <View style={styles.dateItem}>
-              <Ionicons name="calendar-outline" size={20} color="#5B5BD6" />
-              <Text style={styles.dateItemLabel}>Эхлэсэн</Text>
-              <Text style={styles.dateItemValue}>{formatDate(loan.disbursedAt || loan.createdAt)}</Text>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+
+          {/* ── HERO ─────────────────────────────────────────────────────── */}
+          <LinearGradient
+            colors={loan.status === 'overdue' ? ['#FF6B6B', '#FF9E9E'] : ['#5B5BD6', '#22C7BE']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.heroCard}
+          >
+            <View style={styles.heroDecoA} />
+            <View style={styles.heroDecoB} />
+            <View style={styles.heroTop}>
+              <Text style={styles.heroLoanNumber}>{loan.loanNumber}</Text>
+              <View style={styles.heroBadge}>
+                <Text style={styles.heroBadgeText}>{getStatusText()}</Text>
+              </View>
             </View>
-            <View style={styles.dateSep} />
-            <View style={styles.dateItem}>
-              <Ionicons name="time-outline" size={20} color={loan.status === 'overdue' ? '#EF4444' : '#22C7BE'} />
-              <Text style={styles.dateItemLabel}>Дуусах</Text>
-              <Text style={[styles.dateItemValue, loan.status === 'overdue' && { color: '#EF4444' }]}>
-                {formatDate(loan.dueDate)}
-              </Text>
-            </View>
-            {loan.extensionCount > 0 && (
-              <>
-                <View style={styles.dateSep} />
-                <View style={styles.dateItem}>
-                  <Ionicons name="refresh-outline" size={20} color="#F59E0B" />
-                  <Text style={styles.dateItemLabel}>Сунгалт</Text>
-                  <Text style={styles.dateItemValue}>{loan.extensionCount}/{MAX_EXTENSIONS}</Text>
+            <Text style={styles.heroAmount}>{formatMoney(loan.principal)}₮</Text>
+            <Text style={styles.heroLabel}>Зээлийн үндсэн дүн</Text>
+            {canRepay && (
+              <View style={styles.heroProgress}>
+                <View style={styles.heroProgressBar}>
+                  <View style={[styles.heroProgressFill, { width: `${progressPercent}%` }]} />
                 </View>
+                <View style={styles.heroProgressLabels}>
+                  <Text style={styles.heroProgressText}>{progressPercent}% төлөгдсөн</Text>
+                  <Text style={styles.heroProgressText}>Үлдэгдэл: {formatMoney(loan.remainingAmount)}₮</Text>
+                </View>
+              </View>
+            )}
+          </LinearGradient>
+
+          {/* ── САНХҮҮГИЙН НЭГТГЭЛ ───────────────────────────────────────── */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Санхүүгийн нэгтгэл</Text>
+            <SummaryRow icon="cash-outline" bg="#EEEEFF" color="#5B5BD6" label="Зээлийн дүн" value={`${formatMoney(loan.principal)}₮`} />
+            <SummaryRow icon="trending-up-outline" bg="#FEF9C3" color="#EAB308"
+              label={`Хүү (4.5%/сар × ${loan.term}/30 = ${(4.5 * loan.term / 30).toFixed(2)}%)`}
+              value={`${formatMoney(loan.interestAmount)}₮`}
+            />
+            <SummaryRow icon="card-outline" bg="#E5FAFA" color="#22C7BE" label="Нийт" value={`${formatMoney(loan.totalAmount)}₮`} />
+            <View style={styles.divider} />
+            <SummaryRow icon="checkmark-circle" bg="#E8F8EE" color="#27AE60" label="Төлсөн"
+              value={`${formatMoney(loan.paidAmount)}₮`} valueColor={COLORS.success}
+            />
+            <SummaryRow icon="alert-circle" bg="#FEE2E2" color="#EF4444" label="Үлдэгдэл"
+              value={`${formatMoney(loan.remainingAmount)}₮`} valueColor={COLORS.danger} valueBold
+            />
+            {(loan.lateFee || 0) > 0 && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.lateFeeBox}>
+                  <Ionicons name="warning" size={16} color="#EAB308" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.lateFeeTitle}>Хугацаа хэтэрсэн торгууль</Text>
+                    <Text style={styles.lateFeeDesc}>
+                      {loan.daysOverdue || 0} хоног × (4.5% × 20% / 30) × {formatMoney(loan.principal)}₮
+                    </Text>
+                  </View>
+                  <Text style={styles.lateFeeAmt}>{formatMoney(loan.lateFee)}₮</Text>
+                </View>
+                <SummaryRow icon="card-outline" bg="#FEE2E2" color="#EF4444" label="Нийт төлөх (торгуультай)"
+                  value={`${formatMoney(totalDue)}₮`} valueColor="#EF4444" valueBold
+                />
               </>
             )}
           </View>
-        </View>
 
-        {/* ── СУНГАЛТЫН МЭДЭЭЛЭЛ ─────────────────────────────────────────── */}
-        {canRepay && (
+          {/* ── ОГНОО ────────────────────────────────────────────────────── */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Сунгалтын боломж</Text>
-
-            {loan.term === 7 ? (
-              <View style={styles.extendNotAvail}>
-                <Ionicons name="ban-outline" size={20} color="#EF4444" />
-                <Text style={styles.extendNotAvailText}>7 хоногийн зээлийг сунгах боломжгүй (2025 хуулийн дагуу)</Text>
+            <Text style={styles.cardTitle}>Огноо & Хугацаа</Text>
+            <View style={styles.dateGrid}>
+              <View style={styles.dateItem}>
+                <Ionicons name="calendar-outline" size={20} color="#5B5BD6" />
+                <Text style={styles.dateItemLabel}>Эхлэсэн</Text>
+                <Text style={styles.dateItemValue}>{formatDate(loan.disbursedAt || loan.createdAt)}</Text>
               </View>
-            ) : (
-              <>
-                <View style={styles.extendFeeRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.extendFeeLabel}>Сунгалтын хураамж (10%)</Text>
-                    <Text style={styles.extendFeeDesc}>Үндсэн зээл {formatMoney(loan.principal)}₮ × 10%</Text>
+              <View style={styles.dateSep} />
+              <View style={styles.dateItem}>
+                <Ionicons name="time-outline" size={20} color={loan.status === 'overdue' ? '#EF4444' : '#22C7BE'} />
+                <Text style={styles.dateItemLabel}>Дуусах</Text>
+                <Text style={[styles.dateItemValue, loan.status === 'overdue' && { color: '#EF4444' }]}>
+                  {formatDate(loan.dueDate)}
+                </Text>
+              </View>
+              {loan.extensionCount > 0 && (
+                <>
+                  <View style={styles.dateSep} />
+                  <View style={styles.dateItem}>
+                    <Ionicons name="refresh-outline" size={20} color="#F59E0B" />
+                    <Text style={styles.dateItemLabel}>Сунгалт</Text>
+                    <Text style={styles.dateItemValue}>{loan.extensionCount}/{MAX_EXTENSIONS}</Text>
                   </View>
-                  <Text style={styles.extendFeeAmt}>{formatMoney(extensionFee)}₮</Text>
-                </View>
+                </>
+              )}
+            </View>
+          </View>
 
-                {/* Extension dots */}
-                <View style={styles.extDotRow}>
-                  {Array.from({ length: MAX_EXTENSIONS }).map((_, i) => (
-                    <View key={i} style={[
-                      styles.extDot,
-                      i < loan.extensionCount ? styles.extDotUsed : styles.extDotEmpty,
-                    ]}>
-                      {i < loan.extensionCount && <Ionicons name="checkmark" size={10} color="#fff" />}
+          {/* ── СУНГАЛТЫН МЭДЭЭЛЭЛ ───────────────────────────────────────── */}
+          {canRepay && (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Сунгалтын боломж</Text>
+              {loan.term === 7 ? (
+                <View style={styles.extendNotAvail}>
+                  <Ionicons name="ban-outline" size={20} color="#EF4444" />
+                  <Text style={styles.extendNotAvailText}>7 хоногийн зээлийг сунгах боломжгүй (2025 хуулийн дагуу)</Text>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.extendFeeRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.extendFeeLabel}>Сунгалтын хураамж (10%)</Text>
+                      <Text style={styles.extendFeeDesc}>Үндсэн зээл {formatMoney(loan.principal)}₮ × 10%</Text>
                     </View>
-                  ))}
-                  <Text style={styles.extDotText}>
-                    {remainingExtensions > 0
-                      ? `${remainingExtensions} удаа сунгах боломжтой`
-                      : 'Сунгалтын хязгаарт хүрсэн'}
-                  </Text>
-                </View>
-
-                {/* Extension history */}
-                {loan.extensions && loan.extensions.length > 0 && (
-                  <View style={styles.extHistory}>
-                    <Text style={styles.extHistoryTitle}>Сунгалтын түүх</Text>
-                    {loan.extensions.map((ext, idx) => (
-                      <View key={idx} style={styles.extHistoryRow}>
-                        <Ionicons name="checkmark-circle" size={14} color="#10B981" />
-                        <Text style={styles.extHistoryText}>
-                          {idx + 1}-р сунгалт · {formatDate(ext.extendedAt)} · {formatMoney(ext.extensionFee)}₮
-                        </Text>
+                    <Text style={styles.extendFeeAmt}>{formatMoney(extensionFee)}₮</Text>
+                  </View>
+                  <View style={styles.extDotRow}>
+                    {Array.from({ length: MAX_EXTENSIONS }).map((_, i) => (
+                      <View key={i} style={[
+                        styles.extDot,
+                        i < loan.extensionCount ? styles.extDotUsed : styles.extDotEmpty,
+                      ]}>
+                        {i < loan.extensionCount && <Ionicons name="checkmark" size={10} color="#fff" />}
                       </View>
                     ))}
+                    <Text style={styles.extDotText}>
+                      {remainingExtensions > 0
+                        ? `${remainingExtensions} удаа сунгах боломжтой`
+                        : 'Сунгалтын хязгаарт хүрсэн'}
+                    </Text>
                   </View>
-                )}
-              </>
-            )}
-          </View>
-        )}
-
-        {/* ── ТӨЛБӨР ТӨЛӨХ ───────────────────────────────────────────────── */}
-        {canRepay && (
-          <View style={styles.repayCard}>
-            <Text style={styles.cardTitle}>Зээл төлөх</Text>
-
-            <LinearGradient
-              colors={['#5B5BD6', '#22C7BE']}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={styles.totalDueBox}
-            >
-              <Text style={styles.totalDueLabel}>Нийт төлөх ёстой дүн</Text>
-              <Text style={styles.totalDueAmount}>{formatMoney(totalDue)}₮</Text>
-              {(loan.lateFee || 0) > 0 && (
-                <Text style={styles.totalDueSub}>
-                  Үлдэгдэл {formatMoney(loan.remainingAmount)}₮ + Торгууль {formatMoney(loan.lateFee)}₮
-                </Text>
+                  {loan.extensions && loan.extensions.length > 0 && (
+                    <View style={styles.extHistory}>
+                      <Text style={styles.extHistoryTitle}>Сунгалтын түүх</Text>
+                      {loan.extensions.map((ext, idx) => (
+                        <View key={idx} style={styles.extHistoryRow}>
+                          <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                          <Text style={styles.extHistoryText}>
+                            {idx + 1}-р сунгалт · {formatDate(ext.extendedAt)} · {formatMoney(ext.extensionFee)}₮
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </>
               )}
-            </LinearGradient>
-
-            <View style={styles.walletInfo}>
-              <Ionicons name="wallet-outline" size={16} color="#5B5BD6" />
-              <Text style={styles.walletInfoText}>
-                Хэтэвчний үлдэгдэл:{' '}
-                <Text style={{ fontWeight: '700', color: '#0F0F1A' }}>{formatMoney(wallet?.balance || 0)}₮</Text>
-              </Text>
             </View>
+          )}
 
-            {/* Quick select */}
-            <Text style={styles.quickLabel}>Хурдан сонголт</Text>
-            <View style={styles.quickRow}>
-              {[
-                { label: 'Бүгд',  value: totalDue },
-                { label: '50%',   value: Math.ceil(totalDue / 2) },
-                { label: '25%',   value: Math.ceil(totalDue / 4) },
-              ].map((q) => (
-                <TouchableOpacity
-                  key={q.label}
-                  style={[styles.quickBtn, parseFloat(repayAmount) === q.value && styles.quickBtnActive]}
-                  onPress={() => setRepayAmount(q.value.toString())}
-                >
-                  <Text style={[styles.quickBtnText, parseFloat(repayAmount) === q.value && { color: '#5B5BD6' }]}>
-                    {q.label}
-                  </Text>
-                  <Text style={[styles.quickBtnAmt, parseFloat(repayAmount) === q.value && { color: '#5B5BD6' }]}>
-                    {formatMoney(q.value)}₮
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+          {/* ── ТӨЛБӨР ТӨЛӨХ ─────────────────────────────────────────────── */}
+          {canRepay && (
+            <View style={styles.repayCard}>
+              <Text style={styles.cardTitle}>Зээл төлөх</Text>
 
-            <Input
-              label="Төлөх дүн"
-              placeholder="Дүн оруулах"
-              value={repayAmount}
-              onChangeText={setRepayAmount}
-              keyboardType="numeric"
-              suffix="₮"
-            />
-
-            {repayAmount && parseFloat(repayAmount) > 0 && (
-              <View style={styles.calcBox}>
-                <View style={styles.calcRow}>
-                  <Text style={styles.calcLabel}>Төлөх дүн</Text>
-                  <Text style={styles.calcValue}>{formatMoney(parseFloat(repayAmount))}₮</Text>
-                </View>
-                <View style={styles.calcRow}>
-                  <Text style={styles.calcLabel}>Үлдэх үлдэгдэл</Text>
-                  <Text style={[styles.calcValue, { color: Math.max(0, totalDue - parseFloat(repayAmount)) === 0 ? COLORS.success : COLORS.danger }]}>
-                    {formatMoney(Math.max(0, totalDue - parseFloat(repayAmount)))}₮
+              <LinearGradient
+                colors={['#5B5BD6', '#22C7BE']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={styles.totalDueBox}
+              >
+                <Text style={styles.totalDueLabel}>Нийт төлөх ёстой дүн</Text>
+                <Text style={styles.totalDueAmount}>{formatMoney(totalDue)}₮</Text>
+                {(loan.lateFee || 0) > 0 && (
+                  <Text style={styles.totalDueSub}>
+                    Үлдэгдэл {formatMoney(loan.remainingAmount)}₮ + Торгууль {formatMoney(loan.lateFee)}₮
                   </Text>
-                </View>
+                )}
+              </LinearGradient>
+
+              <View style={styles.walletInfo}>
+                <Ionicons name="wallet-outline" size={16} color="#5B5BD6" />
+                <Text style={styles.walletInfoText}>
+                  Хэтэвчний үлдэгдэл:{' '}
+                  <Text style={{ fontWeight: '700', color: '#0F0F1A' }}>{formatMoney(wallet?.balance || 0)}₮</Text>
+                </Text>
               </View>
-            )}
 
-            <Button
-              title={repaying ? 'Төлж байна...' : 'Төлбөр төлөх'}
-              onPress={handleRepayPress}
-              loading={repaying}
-              disabled={!repayAmount || parseFloat(repayAmount) <= 0 || (wallet?.balance || 0) < parseFloat(repayAmount)}
-            />
-          </View>
-        )}
+              {/* Quick select */}
+              <Text style={styles.quickLabel}>Хурдан сонголт</Text>
+              <View style={styles.quickRow}>
+                {[
+                  { label: 'Бүгд', value: totalDue },
+                  { label: '50%',  value: Math.ceil(totalDue / 2) },
+                  { label: '25%',  value: Math.ceil(totalDue / 4) },
+                ].map((q) => (
+                  <TouchableOpacity
+                    key={q.label}
+                    style={[styles.quickBtn, parseFloat(repayAmount) === q.value && styles.quickBtnActive]}
+                    onPress={() => setRepayAmount(q.value.toString())}
+                  >
+                    <Text style={[styles.quickBtnText, parseFloat(repayAmount) === q.value && { color: '#5B5BD6' }]}>
+                      {q.label}
+                    </Text>
+                    <Text style={[styles.quickBtnAmt, parseFloat(repayAmount) === q.value && { color: '#5B5BD6' }]}>
+                      {formatMoney(q.value)}₮
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-        {/* ── СУНГАХ ТОВЧ ────────────────────────────────────────────────── */}
-        {canRepay && canExtend && (
-          <TouchableOpacity
-            style={styles.extendBtn}
-            onPress={() => navigation.navigate('ExtendLoan', { loanId: loan._id })}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="refresh-outline" size={20} color="#5B5BD6" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.extendBtnText}>Зээл сунгах</Text>
-              <Text style={styles.extendBtnSub}>
-                Хураамж {formatMoney(extensionFee)}₮ · {remainingExtensions} удаа үлдсэн
-              </Text>
+              <Input
+                label="Төлөх дүн"
+                placeholder="Дүн оруулах"
+                value={repayAmount}
+                onChangeText={setRepayAmount}
+                keyboardType="numeric"
+                suffix="₮"
+              />
+
+              {repayAmount && parseFloat(repayAmount) > 0 && (
+                <View style={styles.calcBox}>
+                  <View style={styles.calcRow}>
+                    <Text style={styles.calcLabel}>Төлөх дүн</Text>
+                    <Text style={styles.calcValue}>{formatMoney(parseFloat(repayAmount))}₮</Text>
+                  </View>
+                  <View style={styles.calcRow}>
+                    <Text style={styles.calcLabel}>Үлдэх үлдэгдэл</Text>
+                    <Text style={[styles.calcValue, { color: Math.max(0, totalDue - parseFloat(repayAmount)) === 0 ? COLORS.success : COLORS.danger }]}>
+                      {formatMoney(Math.max(0, totalDue - parseFloat(repayAmount)))}₮
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              <Button
+                title={repaying ? 'Төлж байна...' : 'Төлбөр төлөх'}
+                onPress={handleRepayPress}
+                loading={repaying}
+                disabled={!repayAmount || parseFloat(repayAmount) <= 0 || (wallet?.balance || 0) < parseFloat(repayAmount)}
+              />
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#5B5BD6" />
-          </TouchableOpacity>
-        )}
+          )}
 
-        <View style={{ height: 100 }} />
-      </ScrollView>
+          {/* ── СУНГАХ ТОВЧ ──────────────────────────────────────────────── */}
+          {canRepay && canExtend && (
+            <TouchableOpacity
+              style={styles.extendBtn}
+              onPress={() => navigation.navigate('ExtendLoan', { loanId: loan._id })}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="refresh-outline" size={20} color="#5B5BD6" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.extendBtnText}>Зээл сунгах</Text>
+                <Text style={styles.extendBtnSub}>
+                  Хураамж {formatMoney(extensionFee)}₮ · {remainingExtensions} удаа үлдсэн
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#5B5BD6" />
+            </TouchableOpacity>
+          )}
 
-      <CustomAlert
-        visible={alertVisible}
-        onClose={() => setAlertVisible(false)}
-        title="Зээл төлөх"
-        message={`${formatMoney(parseFloat(repayAmount || 0))}₮ төлөх үү?\n\nХэтэвчнээс хасагдана.`}
-        type="info"
-        buttons={[
-          { text: 'Болих', style: 'cancel' },
-          { text: 'Төлөх', onPress: confirmRepay },
-        ]}
-      />
-    </SafeAreaView>
+          <View style={{ height: 100 }} />
+        </ScrollView>
+
+        <CustomAlert
+          visible={alertVisible}
+          onClose={() => setAlertVisible(false)}
+          title="Зээл төлөх"
+          message={`${formatMoney(parseFloat(repayAmount || 0))}₮ төлөх үү?\n\nХэтэвчнээс хасагдана.`}
+          type="info"
+          buttons={[
+            { text: 'Болих', style: 'cancel' },
+            { text: 'Төлөх', onPress: confirmRepay },
+          ]}
+        />
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 };
 
-// Helper component
 const SummaryRow = ({ icon, bg, color, label, value, valueColor, valueBold }) => (
   <View style={styles.row}>
     <View style={[styles.rowIcon, { backgroundColor: bg }]}>
@@ -428,7 +419,7 @@ const SummaryRow = ({ icon, bg, color, label, value, valueColor, valueBold }) =>
 );
 
 const styles = StyleSheet.create({
-  safe:        { flex: 1, backgroundColor: '#F2F4F9' },
+  safe:       { flex: 1, backgroundColor: '#F2F4F9' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, backgroundColor: '#F2F4F9',

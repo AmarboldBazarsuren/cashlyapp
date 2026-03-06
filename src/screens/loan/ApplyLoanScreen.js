@@ -1,12 +1,12 @@
 /**
  * ApplyLoanScreen.js
- * ✅ ANDROID: useSafeAreaInsets - status bar overlap байхгүй
+ * ✅ ANDROID + iOS: KeyboardAvoidingView → "Зээл хүсэх" button keyboard-аар хаагдахгүй
  */
 
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, StatusBar, Alert,
+  TextInput, StatusBar, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,9 +31,9 @@ export default function ApplyLoanScreen({ navigation }) {
   const { activeLoans } = useApp();
   const insets = useSafeAreaInsets();
 
-  const [amount, setAmount]       = useState('');
-  const [duration, setDuration]   = useState(DURATIONS[1]);
-  const [loading, setLoading]     = useState(false);
+  const [amount, setAmount]     = useState('');
+  const [duration, setDuration] = useState(DURATIONS[1]);
+  const [loading, setLoading]   = useState(false);
 
   const totalLimit      = user?.creditLimit || 0;
   const usedLimit       = user?.usedCreditLimit || 0;
@@ -42,10 +42,10 @@ export default function ApplyLoanScreen({ navigation }) {
   const externalLoans    = user?.externalActiveLoansCount || 0;
   const totalActiveLoans = (activeLoans?.length || 0) + externalLoans;
 
-  const numAmount  = parseInt(amount.replace(/,/g, ''), 10) || 0;
-  const interest   = Math.round(numAmount * (duration.rate / 100));
-  const totalPay   = numAmount + interest;
-  const canApply   = numAmount >= 100000 && numAmount <= availableCredit && totalActiveLoans < 5;
+  const numAmount = parseInt(amount.replace(/,/g, ''), 10) || 0;
+  const interest  = Math.round(numAmount * (duration.rate / 100));
+  const totalPay  = numAmount + interest;
+  const canApply  = numAmount >= 100000 && numAmount <= availableCredit && totalActiveLoans < 5;
 
   const handleAmountChange = (text) => {
     const clean = text.replace(/[^0-9]/g, '');
@@ -72,7 +72,11 @@ export default function ApplyLoanScreen({ navigation }) {
   };
 
   return (
-    <View style={S.root}>
+    <KeyboardAvoidingView
+      style={S.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
       <StatusBar barStyle="light-content" backgroundColor="#5B5BD6" translucent={false} />
 
       {/* Header */}
@@ -88,8 +92,12 @@ export default function ApplyLoanScreen({ navigation }) {
         <View style={{ width: 40 }} />
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={S.scroll} showsVerticalScrollIndicator={false}>
-
+      {/* Scrollable content */}
+      <ScrollView
+        contentContainerStyle={S.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Credit limit card */}
         <LinearGradient
           colors={['#7C3AED', '#5B5BD6']}
@@ -179,9 +187,9 @@ export default function ApplyLoanScreen({ navigation }) {
         {numAmount >= 100000 && (
           <View style={S.summaryCard}>
             {[
-              { label: 'Зээлийн дүн',  val: `${fmt(numAmount)}₮`,  color: '#0F0F1A' },
-              { label: 'Хүүгийн дүн',  val: `${fmt(interest)}₮`,   color: '#EF4444' },
-              { label: 'Нийт төлбөр',  val: `${fmt(totalPay)}₮`,   color: '#5B5BD6', bold: true },
+              { label: 'Зээлийн дүн', val: `${fmt(numAmount)}₮`,  color: '#0F0F1A' },
+              { label: 'Хүүгийн дүн', val: `${fmt(interest)}₮`,   color: '#EF4444' },
+              { label: 'Нийт төлбөр', val: `${fmt(totalPay)}₮`,   color: '#5B5BD6', bold: true },
             ].map((r, i, arr) => (
               <View key={r.label} style={[S.summaryRow, i < arr.length - 1 && S.summaryBorder]}>
                 <Text style={S.summaryLabel}>{r.label}</Text>
@@ -199,7 +207,7 @@ export default function ApplyLoanScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Apply button */}
+        {/* Apply button — ScrollView доторх, keyboard гарахад scroll хийж харагдана */}
         <TouchableOpacity
           onPress={handleApply}
           disabled={!canApply || loading}
@@ -224,7 +232,7 @@ export default function ApplyLoanScreen({ navigation }) {
         </TouchableOpacity>
 
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -236,30 +244,30 @@ const S = StyleSheet.create({
   backBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
 
-  limitCard:   { borderRadius: 18, padding: 18, marginBottom: 14, overflow: 'hidden' },
-  limitDeco:   { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)', top: -30, right: -20 },
-  limitRow:    { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  limitCard:    { borderRadius: 18, padding: 18, marginBottom: 14, overflow: 'hidden' },
+  limitDeco:    { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)', top: -30, right: -20 },
+  limitRow:     { flexDirection: 'row', alignItems: 'center', gap: 14 },
   limitIconWrap:{ width: 46, height: 46, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
-  limitCaption:{ fontSize: 12, color: 'rgba(255,255,255,0.8)', marginBottom: 4 },
-  limitAmt:    { fontSize: 26, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  limitCaption: { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginBottom: 4 },
+  limitAmt:     { fontSize: 26, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
 
   infoBox:     { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#EEEEFF', borderRadius: 12, padding: 12, marginBottom: 18, borderWidth: 1, borderColor: '#D4D4F8' },
   infoBoxWarn: { backgroundColor: '#FEE2E2', borderColor: '#FECACA' },
   infoTxt:     { fontSize: 12, color: '#5B5BD6', fontWeight: '500', flex: 1 },
 
-  label:    { fontSize: 15, fontWeight: '700', color: '#0F0F1A', marginBottom: 10 },
-  inputWrap:{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 16, marginBottom: 6, borderWidth: 1, borderColor: '#E8EBF4', shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 1 },
-  input:    { flex: 1, fontSize: 20, fontWeight: '700', color: '#0F0F1A', paddingVertical: 16 },
-  inputSuffix: { fontSize: 18, fontWeight: '700', color: '#94A3B8' },
-  errTxt:   { fontSize: 12, color: '#EF4444', marginBottom: 10, marginLeft: 4 },
+  label:      { fontSize: 15, fontWeight: '700', color: '#0F0F1A', marginBottom: 10 },
+  inputWrap:  { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 16, marginBottom: 6, borderWidth: 1, borderColor: '#E8EBF4', shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 1 },
+  input:      { flex: 1, fontSize: 20, fontWeight: '700', color: '#0F0F1A', paddingVertical: 16 },
+  inputSuffix:{ fontSize: 18, fontWeight: '700', color: '#94A3B8' },
+  errTxt:     { fontSize: 12, color: '#EF4444', marginBottom: 10, marginLeft: 4 },
 
-  durationGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18 },
-  durationBtn:     { width: '47%', borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#E8EBF4' },
+  durationGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18 },
+  durationBtn:      { width: '47%', borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#E8EBF4' },
   durationBtnActive:{ borderColor: 'transparent' },
-  durationGrad:    { padding: 16 },
-  durationInner:   { padding: 16, backgroundColor: '#fff' },
-  durationLabel:   { fontSize: 15, fontWeight: '700', color: '#0F0F1A', marginBottom: 4 },
-  durationRate:    { fontSize: 12, color: '#94A3B8' },
+  durationGrad:     { padding: 16 },
+  durationInner:    { padding: 16, backgroundColor: '#fff' },
+  durationLabel:    { fontSize: 15, fontWeight: '700', color: '#0F0F1A', marginBottom: 4 },
+  durationRate:     { fontSize: 12, color: '#94A3B8' },
 
   summaryCard:   { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 14, shadowColor: '#5B5BD6', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   summaryRow:    { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },
@@ -268,8 +276,8 @@ const S = StyleSheet.create({
   summaryVal:    { fontSize: 14, fontWeight: '600' },
   summaryValBold:{ fontSize: 16, fontWeight: '800' },
 
-  noteBox:  { flexDirection: 'row', gap: 8, backgroundColor: '#EEEEFF', borderRadius: 12, padding: 12, marginBottom: 18, borderWidth: 1, borderColor: '#D4D4F8' },
-  noteTxt:  { fontSize: 11, color: '#5B5BD6', flex: 1, lineHeight: 17 },
+  noteBox: { flexDirection: 'row', gap: 8, backgroundColor: '#EEEEFF', borderRadius: 12, padding: 12, marginBottom: 18, borderWidth: 1, borderColor: '#D4D4F8' },
+  noteTxt: { fontSize: 11, color: '#5B5BD6', flex: 1, lineHeight: 17 },
 
   applyBtn:         { borderRadius: 16, paddingVertical: 18, alignItems: 'center', justifyContent: 'center' },
   applyBtnDisabled: { backgroundColor: '#E2E8F0' },

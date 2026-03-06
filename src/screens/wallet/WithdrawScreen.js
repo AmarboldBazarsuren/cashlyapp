@@ -1,8 +1,6 @@
 /**
  * WithdrawScreen — Minimal
- * ✅ requestWithdrawal() — зөв функц
- * ✅ CTA button ScrollView-с гадна → үргэлж харагдана
- * ✅ Банкны мэдээлэл шалгана
+ * ✅ Хамгийн бага татан авах дүн: 20,000₮
  */
 
 import React, { useState, useRef } from 'react';
@@ -21,6 +19,8 @@ import { useApp } from '../../context/AppContext';
 import CustomAlert from '../../components/common/CustomAlert';
 import { COLORS } from '../../constants/colors';
 import { formatMoney } from '../../utils/formatters';
+
+const MIN_WITHDRAW = 20000;
 
 const PCT_BTNS = [
   { label: '25%', pct: 0.25 },
@@ -41,21 +41,21 @@ export default function WithdrawScreen({ navigation }) {
   const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
-  const [alertType, setAlertType] = useState('confirm'); // 'confirm' | 'bank'
+  const [alertType, setAlertType] = useState('confirm');
   const inputRef = useRef(null);
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
   const amount = parseInt(raw.replace(/\D/g, ''), 10) || 0;
   const remaining = availableBalance - amount;
   const overLimit = amount > availableBalance;
-  const isValid = amount >= 10000 && !overLimit;
-  const noFunds = availableBalance < 10000;
+  const isValid = amount >= MIN_WITHDRAW && !overLimit;
+  const noFunds = availableBalance < MIN_WITHDRAW;
 
   const handleChange = (text) => setRaw(text.replace(/\D/g, ''));
 
   const setPct = (pct) => {
-    const v = Math.floor((availableBalance * pct) / 10000) * 10000;
-    setRaw(String(Math.max(10000, Math.min(availableBalance, v))));
+    const v = Math.floor((availableBalance * pct) / MIN_WITHDRAW) * MIN_WITHDRAW;
+    setRaw(String(Math.max(MIN_WITHDRAW, Math.min(availableBalance, v))));
   };
 
   const shake = () => Animated.sequence([
@@ -66,9 +66,13 @@ export default function WithdrawScreen({ navigation }) {
   ]).start();
 
   const handleWithdraw = () => {
-    if (noFunds) { Toast.show({ type: 'error', text1: 'Үлдэгдэл хүрэлцэхгүй' }); return; }
+    if (noFunds) { Toast.show({ type: 'error', text1: `Хамгийн бага ${formatMoney(MIN_WITHDRAW)}₮ шаардлагатай` }); return; }
     if (!hasBankInfo) { setAlertType('bank'); setAlertVisible(true); return; }
-    if (!isValid) { shake(); Toast.show({ type: 'error', text1: overLimit ? 'Үлдэгдэлээс хэтэрсэн' : 'Хамгийн бага дүн 10,000₮' }); return; }
+    if (!isValid) {
+      shake();
+      Toast.show({ type: 'error', text1: overLimit ? 'Үлдэгдэлээс хэтэрсэн' : `Хамгийн бага дүн ${formatMoney(MIN_WITHDRAW)}₮` });
+      return;
+    }
     setAlertType('confirm');
     setAlertVisible(true);
   };
@@ -101,7 +105,7 @@ export default function WithdrawScreen({ navigation }) {
 
       <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 
-        {/* ── Header ── */}
+        {/* Header */}
         <View style={s.header}>
           <TouchableOpacity onPress={goBack} style={s.backBtn}>
             <Ionicons name="chevron-back" size={20} color="#1C1C1E" />
@@ -110,7 +114,7 @@ export default function WithdrawScreen({ navigation }) {
           <View style={{ width: 40 }} />
         </View>
 
-        {/* ── Balance card ── */}
+        {/* Balance card */}
         <View style={s.balCard}>
           <View>
             <Text style={s.balLabel}>Боломжит үлдэгдэл</Text>
@@ -125,11 +129,10 @@ export default function WithdrawScreen({ navigation }) {
         </View>
 
         {noFunds ? (
-          /* ── No funds ── */
           <View style={s.emptyWrap}>
             <Text style={s.emptyIcon}>💸</Text>
             <Text style={s.emptyTitle}>Үлдэгдэл хүрэлцэхгүй</Text>
-            <Text style={s.emptySub}>Эхлэед хэтэвч цэнэглэнэ үү.</Text>
+            <Text style={s.emptySub}>Хамгийн бага {formatMoney(MIN_WITHDRAW)}₮ шаардлагатай</Text>
           </View>
         ) : (
           <>
@@ -164,11 +167,11 @@ export default function WithdrawScreen({ navigation }) {
 
                 <Text style={[s.hint, overLimit && s.hintError]}>
                   {!raw
-                    ? 'Хамгийн бага 10,000₮'
+                    ? `Хамгийн бага ${formatMoney(MIN_WITHDRAW)}₮`
                     : overLimit
                     ? `Хамгийн ихдээ ${formatMoney(availableBalance)}₮ татах боломжтой`
                     : !isValid
-                    ? 'Хамгийн бага дүн 10,000₮'
+                    ? `Хамгийн бага дүн ${formatMoney(MIN_WITHDRAW)}₮`
                     : `Үлдэх дүн → ${formatMoney(remaining)}₮`}
                 </Text>
               </TouchableOpacity>
@@ -176,8 +179,8 @@ export default function WithdrawScreen({ navigation }) {
               {/* % Presets */}
               <View style={s.pctRow}>
                 {PCT_BTNS.map((p) => {
-                  const v = Math.floor((availableBalance * p.pct) / 10000) * 10000;
-                  const active = amount === v && v >= 10000;
+                  const v = Math.floor((availableBalance * p.pct) / MIN_WITHDRAW) * MIN_WITHDRAW;
+                  const active = amount === v && v >= MIN_WITHDRAW;
                   return (
                     <TouchableOpacity key={p.label} onPress={() => setPct(p.pct)} style={[s.pctBtn, active && s.pctBtnActive]} activeOpacity={0.7}>
                       <Text style={[s.pctTxt, active && s.pctTxtActive]}>{p.label}</Text>
@@ -215,7 +218,7 @@ export default function WithdrawScreen({ navigation }) {
               )}
             </ScrollView>
 
-            {/* ── CTA — OUTSIDE ScrollView, always visible ── */}
+            {/* CTA — OUTSIDE ScrollView, always visible */}
             <View style={s.ctaWrap}>
               <TouchableOpacity onPress={handleWithdraw} disabled={loading} activeOpacity={0.88}>
                 <LinearGradient
@@ -274,7 +277,6 @@ const s = StyleSheet.create({
   },
   headerTitle: { fontSize: 17, fontWeight: '700', color: '#1C1C1E' },
 
-  // Balance card
   balCard: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: '#fff', marginHorizontal: 20, borderRadius: 16,
@@ -293,7 +295,6 @@ const s = StyleSheet.create({
   statusDot: { width: 7, height: 7, borderRadius: 3.5 },
   statusTxt: { fontSize: 12, fontWeight: '600', color: '#34C759' },
 
-  // Empty state
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
   emptyIcon: { fontSize: 52 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: '#1C1C1E' },
@@ -301,7 +302,6 @@ const s = StyleSheet.create({
 
   scroll: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 },
 
-  // Input
   inputBlock: { marginBottom: 20 },
   inputLabel: { fontSize: 11, fontWeight: '700', color: '#AEAEB2', letterSpacing: 1.2, marginBottom: 18 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
@@ -314,7 +314,6 @@ const s = StyleSheet.create({
   hint: { fontSize: 13, color: '#AEAEB2', marginTop: 10 },
   hintError: { color: '#FF3B30' },
 
-  // Pct presets
   pctRow: { flexDirection: 'row', gap: 10, marginBottom: 28 },
   pctBtn: {
     flex: 1, paddingVertical: 12, borderRadius: 12,
@@ -324,7 +323,6 @@ const s = StyleSheet.create({
   pctTxt: { fontSize: 14, fontWeight: '700', color: '#8E8E93' },
   pctTxtActive: { color: '#F97316' },
 
-  // Summary
   summary: { backgroundColor: '#fff', borderRadius: 16, padding: 18, borderWidth: 1, borderColor: '#F2F2F7', marginBottom: 16 },
   sumRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },
   sumLabel: { fontSize: 15, color: '#8E8E93' },
@@ -334,7 +332,6 @@ const s = StyleSheet.create({
   sumTotalLabel: { fontSize: 16, fontWeight: '700', color: '#1C1C1E' },
   sumTotalVal: { fontSize: 20, fontWeight: '800', color: '#F97316' },
 
-  // Bank warning
   bankWarn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#FFF3E0', borderRadius: 12, padding: 14,
@@ -342,7 +339,6 @@ const s = StyleSheet.create({
   },
   bankWarnTxt: { flex: 1, fontSize: 13, color: '#92400E', fontWeight: '500' },
 
-  // CTA always visible
   ctaWrap: { paddingHorizontal: 24, paddingVertical: 16, backgroundColor: '#FAFAFA' },
   cta: { borderRadius: 16, paddingVertical: 17, alignItems: 'center' },
   ctaTxt: { fontSize: 17, fontWeight: '700', color: '#fff' },
